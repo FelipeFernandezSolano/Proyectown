@@ -625,3 +625,12 @@ table.tabla-pch tbody tr.fila-clickeable {
 .fila-total-form div b { font-size: 18px; color: var(--pch-gris-oscuro); }
 .mini-boton { padding: 6px 10px; font-size: 13px; }
 .tabla-acciones { display: flex; gap: 6px; }
+
+/* Mensajes de error de validacion en formularios */
+.campo-error {
+  display: block;
+  color: var(--pch-rojo);
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 4px;
+}

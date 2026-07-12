@@ -5,6 +5,7 @@ import com.importsmart.security.JwtAuthFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -61,7 +62,23 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // Publico
                 .requestMatchers("/api/auth/**").permitAll()
+
+                // ---- Solo ADMINISTRADOR: informacion sensible y toda escritura ----
+                // Dashboard (utilidades, costos) y cotizaciones (contienen utilidad)
+                .requestMatchers("/api/dashboard/**").hasRole("ADMINISTRADOR")
+                .requestMatchers(HttpMethod.GET, "/api/cotizaciones/**").hasRole("ADMINISTRADOR")
+                // Crear / editar / borrar (el OPERADOR no edita nada)
+                .requestMatchers(HttpMethod.POST, "/api/clientes/**", "/api/productos/**",
+                        "/api/pedidos/**", "/api/categorias/**").hasRole("ADMINISTRADOR")
+                .requestMatchers(HttpMethod.PUT, "/api/clientes/**", "/api/productos/**",
+                        "/api/pedidos/**").hasRole("ADMINISTRADOR")
+                .requestMatchers(HttpMethod.PATCH, "/api/pedidos/**").hasRole("ADMINISTRADOR")
+                .requestMatchers(HttpMethod.DELETE, "/api/clientes/**", "/api/productos/**",
+                        "/api/pedidos/**").hasRole("ADMINISTRADOR")
+
+                // El resto (lecturas, simulador, tipo de cambio) lo pueden ver ambos roles
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())

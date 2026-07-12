@@ -4,6 +4,7 @@ import {
   descargarCotizacion, descargarBlob,
 } from "../api/endpoints";
 import { formatoUSD, formatoNumero, formatoFecha, RENTABILIDAD } from "../utils/format";
+import { useAuth } from "../context/AuthContext";
 import ConfirmDialog from "../components/ConfirmDialog";
 import Icon from "../components/Icon";
 
@@ -13,6 +14,8 @@ function Semaforo({ valor }) {
 }
 
 export default function Pedidos() {
+  const { usuario } = useAuth();
+  const esAdmin = usuario?.rol === "ADMINISTRADOR";
   const [pedidos, setPedidos] = useState([]);
   const [estados, setEstados] = useState([]);
   const [detalle, setDetalle] = useState(null);
@@ -23,7 +26,8 @@ export default function Pedidos() {
   const cargar = () => getPedidos().then(setPedidos).catch(() => setPedidos([]));
   useEffect(() => {
     cargar();
-    getEstados().then(setEstados).catch(() => setEstados([]));
+    if (esAdmin) getEstados().then(setEstados).catch(() => setEstados([]));
+    /* eslint-disable-next-line */
   }, []);
 
   const abrir = async (id) => {
@@ -56,19 +60,22 @@ export default function Pedidos() {
   return (
     <div className="contenido">
       <h2>Pedidos de importacion</h2>
-      <p className="subtitulo-pagina">Costos, utilidad, rentabilidad y estado de cada pedido.</p>
+      <p className="subtitulo-pagina">
+        {esAdmin ? "Costos, utilidad, rentabilidad y estado de cada pedido." : "Seguimiento y estado de cada pedido (solo lectura)."}
+      </p>
 
       <div className="card" style={{ padding: 0, overflow: "hidden" }}>
         <table className="tabla-pch">
           <thead>
             <tr>
               <th>Codigo</th><th>Cliente</th><th>Envio</th><th>Estado</th>
-              <th>Venta</th><th>Utilidad</th><th>Rentabilidad</th><th>Fecha</th><th></th>
+              {esAdmin && <><th>Venta</th><th>Utilidad</th><th>Rentabilidad</th></>}
+              <th>Fecha</th>{esAdmin && <th></th>}
             </tr>
           </thead>
           <tbody>
             {pedidos.length === 0 && (
-              <tr><td colSpan={9}><div className="estado-vacio">No hay pedidos registrados.</div></td></tr>
+              <tr><td colSpan={esAdmin ? 9 : 5}><div className="estado-vacio">No hay pedidos registrados.</div></td></tr>
             )}
             {pedidos.map((p) => (
               <tr key={p.id} className="fila-clickeable" onClick={() => abrir(p.id)}>
@@ -76,16 +83,22 @@ export default function Pedidos() {
                 <td>{p.clienteNombre || "-"}</td>
                 <td><span className="chip-envio"><Icon name={p.tipoEnvio === "MARITIMO" ? "ship" : "plane"} size={13} />{p.tipoEnvio}</span></td>
                 <td><span className="badge badge-azul" style={{ background: (p.estadoColor || "#0c6291") + "22", color: p.estadoColor || "#0c6291" }}>{p.estado}</span></td>
-                <td>{formatoUSD(p.totalVenta)}</td>
-                <td className={Number(p.utilidad) >= 0 ? "num-positivo" : "num-negativo"}>{formatoUSD(p.utilidad)}</td>
-                <td><Semaforo valor={p.rentabilidad} /></td>
+                {esAdmin && (
+                  <>
+                    <td>{formatoUSD(p.totalVenta)}</td>
+                    <td className={Number(p.utilidad) >= 0 ? "num-positivo" : "num-negativo"}>{formatoUSD(p.utilidad)}</td>
+                    <td><Semaforo valor={p.rentabilidad} /></td>
+                  </>
+                )}
                 <td className="texto-tenue">{formatoFecha(p.fechaPedido)}</td>
-                <td onClick={(e) => e.stopPropagation()}>
-                  <div className="tabla-acciones">
-                    <button className="btn-icono" title="Cotizacion PDF" onClick={() => descargarPdf(p.id)}><Icon name="quote" size={16} /></button>
-                    <button className="btn-icono" title="Eliminar" onClick={() => setAEliminar(p)}><Icon name="trash" size={16} /></button>
-                  </div>
-                </td>
+                {esAdmin && (
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <div className="tabla-acciones">
+                      <button className="btn-icono" title="Cotizacion PDF" onClick={() => descargarPdf(p.id)}><Icon name="quote" size={16} /></button>
+                      <button className="btn-icono" title="Eliminar" onClick={() => setAEliminar(p)}><Icon name="trash" size={16} /></button>
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -103,12 +116,12 @@ export default function Pedidos() {
 
             <h4 style={{ margin: "14px 0 6px" }}>Productos</h4>
             <table className="tabla-pch">
-              <thead><tr><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th></tr></thead>
+              <thead><tr><th>Producto</th><th>Cant.</th>{esAdmin && <><th>Precio</th><th>Subtotal</th></>}</tr></thead>
               <tbody>
                 {detalle.items.map((it, i) => (
                   <tr key={i}>
                     <td>{it.productoNombre}</td><td>{it.cantidad}</td>
-                    <td>{formatoUSD(it.precioVenta)}</td><td>{formatoUSD(it.subtotalVenta)}</td>
+                    {esAdmin && <><td>{formatoUSD(it.precioVenta)}</td><td>{formatoUSD(it.subtotalVenta)}</td></>}
                   </tr>
                 ))}
               </tbody>
@@ -130,15 +143,17 @@ export default function Pedidos() {
               </tbody>
             </table>
 
-            <div className="fila-total-form" style={{ marginTop: 14 }}>
-              <div><span>Subtotal productos</span><b>{formatoUSD(detalle.subtotalProductos)}</b></div>
-              <div><span>Costo de envio</span><b>{formatoUSD(detalle.costoEnvio)}</b></div>
-              <div><span>Gastos</span><b>{formatoUSD(detalle.gastosAdicionales)}</b></div>
-              <div><span>Total venta</span><b>{formatoUSD(detalle.totalVenta)}</b></div>
-              <div><span>Utilidad ({formatoNumero(detalle.margenPct)}%)</span>
-                <b className={Number(detalle.utilidad) >= 0 ? "num-positivo" : "num-negativo"}>{formatoUSD(detalle.utilidad)}</b></div>
-              <div><span>Rentabilidad</span><b><Semaforo valor={detalle.rentabilidad} /></b></div>
-            </div>
+            {esAdmin && (
+              <div className="fila-total-form" style={{ marginTop: 14 }}>
+                <div><span>Subtotal productos</span><b>{formatoUSD(detalle.subtotalProductos)}</b></div>
+                <div><span>Costo de envio</span><b>{formatoUSD(detalle.costoEnvio)}</b></div>
+                <div><span>Gastos</span><b>{formatoUSD(detalle.gastosAdicionales)}</b></div>
+                <div><span>Total venta</span><b>{formatoUSD(detalle.totalVenta)}</b></div>
+                <div><span>Utilidad ({formatoNumero(detalle.margenPct)}%)</span>
+                  <b className={Number(detalle.utilidad) >= 0 ? "num-positivo" : "num-negativo"}>{formatoUSD(detalle.utilidad)}</b></div>
+                <div><span>Rentabilidad</span><b><Semaforo valor={detalle.rentabilidad} /></b></div>
+              </div>
+            )}
 
             <h4 style={{ margin: "18px 0 8px" }}><Icon name="timeline" size={15} /> Linea de tiempo</h4>
             <ul className="timeline">
@@ -152,23 +167,29 @@ export default function Pedidos() {
               ))}
             </ul>
 
-            <h4 style={{ margin: "14px 0 6px" }}>Actualizar estado</h4>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
-              <div className="campo" style={{ minWidth: 160 }}>
-                <label>Nuevo estado</label>
-                <select value={nuevoEstado} onChange={(e) => setNuevoEstado(e.target.value)}>
-                  {estados.map((e) => <option key={e.id} value={e.nombre}>{e.nombre}</option>)}
-                </select>
-              </div>
-              <div className="campo" style={{ flex: 1, minWidth: 180 }}>
-                <label>Nota (opcional)</label>
-                <input value={nota} onChange={(e) => setNota(e.target.value)} />
-              </div>
-              <button className="btn btn-azul" onClick={aplicarEstado}>Guardar estado</button>
-            </div>
+            {esAdmin && (
+              <>
+                <h4 style={{ margin: "14px 0 6px" }}>Actualizar estado</h4>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
+                  <div className="campo" style={{ minWidth: 160 }}>
+                    <label>Nuevo estado</label>
+                    <select value={nuevoEstado} onChange={(e) => setNuevoEstado(e.target.value)}>
+                      {estados.map((e) => <option key={e.id} value={e.nombre}>{e.nombre}</option>)}
+                    </select>
+                  </div>
+                  <div className="campo" style={{ flex: 1, minWidth: 180 }}>
+                    <label>Nota (opcional)</label>
+                    <input value={nota} onChange={(e) => setNota(e.target.value)} />
+                  </div>
+                  <button className="btn btn-azul" onClick={aplicarEstado}>Guardar estado</button>
+                </div>
+              </>
+            )}
 
             <div className="modal-acciones">
-              <button className="btn btn-secundario" onClick={() => descargarPdf(detalle.id)}><Icon name="quote" size={15} />Descargar cotizacion</button>
+              {esAdmin && (
+                <button className="btn btn-secundario" onClick={() => descargarPdf(detalle.id)}><Icon name="quote" size={15} />Descargar cotizacion</button>
+              )}
               <button className="btn btn-azul" onClick={() => setDetalle(null)}>Cerrar</button>
             </div>
           </div>

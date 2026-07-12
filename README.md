@@ -145,6 +145,30 @@ Tras iniciar sesión, la barra superior da acceso a las secciones:
 - **Productos** — Catálogo con costo, precio de venta, peso y dimensiones (base del cálculo
   volumétrico). El borrado es lógico (desactiva el producto) para no afectar pedidos previos.
 
+### Roles y permisos
+
+El sistema tiene dos roles con permisos distintos:
+
+- **Administrador** — Acceso total: ve el Dashboard, crea/edita/borra clientes, productos y
+  pedidos, cambia estados, descarga cotizaciones y ve toda la información financiera
+  (costos, utilidad, rentabilidad).
+- **Operador** — **Solo lectura y sin información sensible.** No ve el Dashboard ni la pantalla
+  de Nuevo pedido, no puede crear/editar/borrar nada, y no ve costos, utilidades,
+  rentabilidad ni cotizaciones. Su vista de Pedidos es de **seguimiento logístico**
+  (código, cliente, modalidad, estado, fecha, productos, pesos y línea de tiempo).
+
+Estos permisos se aplican **en el backend** (Spring Security por rol) y además se reflejan en
+la interfaz (se ocultan botones y columnas). Los formularios de Clientes y Productos validan
+que todos los campos estén llenos, que el teléfono sea numérico, que el email tenga `@` y
+dominio, y que las cantidades sean mayores a 0.
+
+### Tipo de cambio (RF-09)
+
+El tipo de cambio USD→CRC se toma de la API pública **open.er-api.com** (alimentada por bancos
+centrales, se actualiza cada 24 h). ImportSmart lo **guarda en caché durante el día** (una sola
+consulta diaria) y lo **refresca automáticamente cada día a las 6:00 a.m.** mediante una tarea
+programada. Si la API no responde, conserva el último valor bueno o usa un respaldo configurable.
+
 ---
 
 ## 5. Manual técnico
