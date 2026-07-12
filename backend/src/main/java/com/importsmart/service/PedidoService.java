@@ -293,7 +293,7 @@ public class PedidoService {
             pdto.setPesoFacturableKg(pk.getPesoFacturableKg());
             d.getPaquetes().add(pdto);
         }
-        historialRepository.findByPedidoIdOrderByFechaAscIdAsc(p.getId()).forEach(h ->
+        historialRepository.findByPedidoIdOrderByIdAsc(p.getId()).forEach(h ->
                 d.getHistorial().add(new HistorialItemDTO(h.getEstadoNombre(), h.getNota(), h.getFecha())));
         return d;
     }

@@ -1,36 +1,46 @@
 package com.importsmart.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
 import java.math.BigDecimal;
 
 @Data
 public class ProductoDTO {
+
+    @NotNull(message = "La categoria es obligatoria")
     private Long categoriaId;
 
     @NotBlank(message = "El nombre del producto es obligatorio")
     private String nombre;
 
+    @NotBlank(message = "La descripcion es obligatoria")
     private String descripcion;
 
-    @PositiveOrZero(message = "El costo no puede ser negativo")
+    @NotNull(message = "El costo es obligatorio")
+    @Positive(message = "El costo debe ser mayor a 0")
     private BigDecimal costoUnitario;
 
-    @PositiveOrZero(message = "El precio de venta no puede ser negativo")
+    @NotNull(message = "El precio de venta es obligatorio")
+    @Positive(message = "El precio de venta debe ser mayor a 0")
     private BigDecimal precioVenta;
 
-    @PositiveOrZero(message = "El peso no puede ser negativo")
+    @NotNull(message = "El peso es obligatorio")
+    @Positive(message = "El peso debe ser mayor a 0")
     private BigDecimal pesoKg;
 
-    @PositiveOrZero(message = "El largo no puede ser negativo")
+    @NotNull(message = "El largo es obligatorio")
+    @Positive(message = "El largo debe ser mayor a 0")
     private BigDecimal largoCm;
 
-    @PositiveOrZero(message = "El ancho no puede ser negativo")
+    @NotNull(message = "El ancho es obligatorio")
+    @Positive(message = "El ancho debe ser mayor a 0")
     private BigDecimal anchoCm;
 
-    @PositiveOrZero(message = "El alto no puede ser negativo")
+    @NotNull(message = "El alto es obligatorio")
+    @Positive(message = "El alto debe ser mayor a 0")
     private BigDecimal altoCm;
 
     private String linkProveedor;

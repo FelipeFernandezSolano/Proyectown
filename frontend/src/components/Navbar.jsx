@@ -8,9 +8,9 @@ import logo from "../assets/logo-importsmart.svg";
 import "./Navbar.css";
 
 const enlaces = [
-  { to: "/", label: "Dashboard", exact: true, icono: "dashboard" },
+  { to: "/", label: "Dashboard", exact: true, icono: "dashboard", soloAdmin: true },
   { to: "/pedidos", label: "Pedidos", icono: "box" },
-  { to: "/nuevo-pedido", label: "Nuevo pedido", icono: "plus" },
+  { to: "/nuevo-pedido", label: "Nuevo pedido", icono: "plus", soloAdmin: true },
   { to: "/simulador", label: "Simulador", icono: "calculator" },
   { to: "/clientes", label: "Clientes", icono: "users" },
   { to: "/productos", label: "Productos", icono: "tag" },
@@ -20,6 +20,7 @@ export default function Navbar() {
   const { usuario, logout } = useAuth();
   const navigate = useNavigate();
   const [tc, setTc] = useState(null);
+  const esAdmin = usuario?.rol === "ADMINISTRADOR";
 
   useEffect(() => {
     getTipoCambio().then(setTc).catch(() => setTc(null));
@@ -30,6 +31,8 @@ export default function Navbar() {
     navigate("/login");
   };
 
+  const visibles = enlaces.filter((e) => !e.soloAdmin || esAdmin);
+
   return (
     <header className="pch-navbar">
       <div className="pch-navbar-marca">
@@ -37,7 +40,7 @@ export default function Navbar() {
       </div>
 
       <nav className="pch-navbar-links">
-        {enlaces.map((enlace) => (
+        {visibles.map((enlace) => (
           <NavLink
             key={enlace.to}
             to={enlace.to}
@@ -59,6 +62,7 @@ export default function Navbar() {
         )}
         <span className="pch-navbar-avatar"><Icon name="user" size={18} /></span>
         <span>{usuario?.nombre}</span>
+        <span className={"badge " + (esAdmin ? "badge-azul" : "badge-gris")}>{esAdmin ? "Administrador" : "Operador"}</span>
         <button className="btn btn-secundario" onClick={salir}>
           <Icon name="logout" size={14} />
           Salir
