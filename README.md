@@ -203,7 +203,7 @@ sistema siga funcionando. Endpoints: `GET /api/tipo-cambio` y `GET /api/tipo-cam
 | PATCH | `/api/pedidos/{id}/estado` | Cambia el estado (registra timeline) |
 | POST | `/api/simulacion` | Simulador de escenarios |
 | GET | `/api/tipo-cambio` | Tipo de cambio externo |
-| GET | `/api/cotizaciones/{id}/pdf` | Cotización en PDF |/
+| GET | `/api/cotizaciones/{id}/pdf` | Cotización en PDF |
 | GET | `/api/dashboard/kpis` | Indicadores del panel |
 
 Todas las rutas (excepto `/api/auth/**`) requieren el header `Authorization: Bearer <token>`.
