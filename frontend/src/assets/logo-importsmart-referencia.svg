@@ -1,0 +1,33 @@
+<svg width="820" height="360" viewBox="0 0 820 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0C6291"/>
+      <stop offset="1" stop-color="#0A4C71"/>
+    </linearGradient>
+    <linearGradient id="isGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#14B8C4"/>
+      <stop offset="1" stop-color="#0C6291"/>
+    </linearGradient>
+  </defs>
+  <rect width="820" height="360" fill="url(#bg)"/>
+  <rect x="70" y="70" width="680" height="220" rx="28" fill="#FFFFFF"/>
+
+  <g transform="translate(110,108)">
+    <rect x="0" y="0" width="104" height="104" rx="26" fill="url(#isGrad)"/>
+    <path d="M52 20 L82 35 L52 50 L22 35 Z" fill="#FFFFFF" fill-opacity="0.92"/>
+    <path d="M22 35 L52 50 V85 L22 70 Z" fill="#FFFFFF" fill-opacity="0.55"/>
+    <path d="M82 35 L52 50 V85 L82 70 Z" fill="#FFFFFF" fill-opacity="0.72"/>
+    <path d="M40 66 L50 56 L58 63 L72 47" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M63 46 H73 V56" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <circle cx="86" cy="20" r="8" fill="#F59E0B"/>
+  </g>
+
+  <g transform="translate(238,120)">
+    <text x="0" y="72" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="54" font-weight="800" letter-spacing="-1">
+      <tspan fill="#0A4C71">Import</tspan><tspan fill="#14B8C4">Smart</tspan>
+    </text>
+    <text x="2" y="106" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="17" font-weight="600" fill="#5B6B7A">Cotiza · Planifica · Controla importaciones</text>
+  </g>
+
+  <rect x="70" y="70" width="680" height="220" rx="28" fill="none" stroke="#14B8C4" stroke-width="2"/>
+</svg>

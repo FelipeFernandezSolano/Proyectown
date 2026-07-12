@@ -1,0 +1,35 @@
+<svg width="560" height="140" viewBox="0 0 560 140" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ImportSmart">
+  <defs>
+    <linearGradient id="isGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#14B8C4"/>
+      <stop offset="1" stop-color="#0C6291"/>
+    </linearGradient>
+    <linearGradient id="isArrow" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#E2F1F8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Icono: caja de importacion con flecha de crecimiento -->
+  <g transform="translate(14,18)">
+    <rect x="0" y="0" width="104" height="104" rx="26" fill="url(#isGrad)"/>
+    <!-- caja / paquete -->
+    <path d="M52 20 L82 35 V70 L52 85 L22 70 V35 Z" fill="#0A4C71" fill-opacity="0.35"/>
+    <path d="M52 20 L82 35 L52 50 L22 35 Z" fill="#FFFFFF" fill-opacity="0.9"/>
+    <path d="M22 35 L52 50 V85 L22 70 Z" fill="#FFFFFF" fill-opacity="0.55"/>
+    <path d="M82 35 L52 50 V85 L82 70 Z" fill="#FFFFFF" fill-opacity="0.72"/>
+    <!-- flecha ascendente (smart / rentabilidad) -->
+    <path d="M40 66 L50 56 L58 63 L72 47" stroke="url(#isArrow)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M63 46 H73 V56" stroke="url(#isArrow)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <!-- punto acento ambar -->
+    <circle cx="86" cy="20" r="8" fill="#F59E0B"/>
+  </g>
+
+  <!-- Wordmark -->
+  <g transform="translate(140,0)">
+    <text x="0" y="72" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="46" font-weight="800" letter-spacing="-1">
+      <tspan fill="#0A4C71">Import</tspan><tspan fill="#14B8C4">Smart</tspan>
+    </text>
+    <text x="2" y="102" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="16.5" font-weight="600" letter-spacing="0.5" fill="#5B6B7A">Cotiza · Planifica · Controla importaciones</text>
+  </g>
+</svg>
