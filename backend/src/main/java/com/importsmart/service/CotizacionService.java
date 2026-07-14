@@ -38,6 +38,10 @@ public class CotizacionService {
     }
 
     public byte[] generar(Long pedidoId) {
+        return generarInterna(pedidoId);
+    }
+
+    public byte[] generarInterna(Long pedidoId) {
         PedidoDetalleDTO p = pedidoService.obtenerDetalle(pedidoId);
         TipoCambioDTO tc = tipoCambioService.obtener();
         BigDecimal tipoCambio = tc.getColonesPorDolar();
@@ -134,6 +138,98 @@ public class CotizacionService {
             return out.toByteArray();
         } catch (DocumentException e) {
             throw new IllegalStateException("No se pudo generar el PDF de la cotizacion", e);
+        }
+    }
+
+    public byte[] generarCliente(Long pedidoId) {
+        PedidoDetalleDTO p = pedidoService.obtenerDetalle(pedidoId);
+        TipoCambioDTO tc = tipoCambioService.obtener();
+        BigDecimal tipoCambio = tc.getColonesPorDolar();
+
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            Document doc = new Document(PageSize.A4, 40, 40, 40, 40);
+            PdfWriter.getInstance(doc, out);
+            doc.open();
+
+            PdfPTable header = new PdfPTable(new float[]{1.2f, 3f});
+            header.setWidthPercentage(100);
+            header.getDefaultCell().setBorder(Rectangle.NO_BORDER);
+            try {
+                Image logo = Image.getInstance(new ClassPathResource("logo-importsmart.png").getInputStream().readAllBytes());
+                logo.scaleToFit(70, 70);
+                PdfPCell logoCell = new PdfPCell(logo, false);
+                logoCell.setBorder(Rectangle.NO_BORDER);
+                logoCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                header.addCell(logoCell);
+            } catch (Exception e) {
+                header.addCell(sinBorde(new Phrase("")));
+            }
+            Paragraph marca = new Paragraph();
+            marca.add(new Chunk("ImportSmart\n", font(20, Font.BOLD, AZUL_OSCURO)));
+            marca.add(new Chunk("Cotizacion comercial para cliente", font(11, Font.NORMAL, GRIS)));
+            PdfPCell marcaCell = new PdfPCell(marca);
+            marcaCell.setBorder(Rectangle.NO_BORDER);
+            marcaCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            header.addCell(marcaCell);
+            doc.add(header);
+            doc.add(barra());
+
+            PdfPTable info = new PdfPTable(2);
+            info.setWidthPercentage(100);
+            info.setSpacingBefore(12);
+            info.addCell(sinBorde(par("Cotizacion: ", p.getCodigo())));
+            info.addCell(sinBordeDer(par("Fecha: ", String.valueOf(LocalDate.now()))));
+            info.addCell(sinBorde(par("Cliente: ", p.getClienteNombre() != null ? p.getClienteNombre() : "-")));
+            info.addCell(sinBordeDer(par("Contacto: ", p.getClienteContacto() != null ? p.getClienteContacto() : "-")));
+            info.addCell(sinBorde(par("Modalidad: ", p.getTipoEnvio() + "  (~" + p.getDiasEstimados() + " dias)")));
+            info.addCell(sinBordeDer(par("Validez: ", "8 dias naturales")));
+            doc.add(info);
+
+            PdfPTable tabla = new PdfPTable(new float[]{4f, 1.2f, 1.6f, 1.6f});
+            tabla.setWidthPercentage(100);
+            tabla.setSpacingBefore(16);
+            th(tabla, "Producto");
+            th(tabla, "Cant.");
+            th(tabla, "Precio (USD)");
+            th(tabla, "Subtotal (USD)");
+            boolean alt = false;
+            for (PedidoItemDTO it : p.getItems()) {
+                Color bg = alt ? GRIS_CLARO : Color.WHITE;
+                td(tabla, it.getProductoNombre(), bg, Element.ALIGN_LEFT);
+                td(tabla, String.valueOf(it.getCantidad()), bg, Element.ALIGN_CENTER);
+                td(tabla, money(it.getPrecioVenta()), bg, Element.ALIGN_RIGHT);
+                td(tabla, money(it.getSubtotalVenta()), bg, Element.ALIGN_RIGHT);
+                alt = !alt;
+            }
+            doc.add(tabla);
+
+            PdfPTable resumen = new PdfPTable(new float[]{3f, 2f});
+            resumen.setWidthPercentage(55);
+            resumen.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            resumen.setSpacingBefore(16);
+            fila(resumen, "TOTAL COTIZADO (USD)", money(p.getTotalVenta()), true);
+            fila(resumen, "TOTAL REFERENCIAL (CRC)", colones(p.getTotalVenta(), tipoCambio), true);
+            doc.add(resumen);
+
+            Paragraph condiciones = new Paragraph(
+                    "Condiciones comerciales: cotizacion sujeta a disponibilidad, validacion de proveedor, "
+                    + "operacion aduanera y variaciones logisticas. Los tiempos de transito son estimados. "
+                    + "Tipo de cambio de referencia: 1 USD = " + nn(tipoCambio) + " CRC.",
+                    font(8.5f, Font.ITALIC, GRIS));
+            condiciones.setSpacingBefore(20);
+            doc.add(condiciones);
+
+            Paragraph nota = new Paragraph(
+                    "Documento para cliente. No incluye costos internos, margen ni rentabilidad de la operacion.",
+                    font(8.5f, Font.NORMAL, GRIS));
+            nota.setSpacingBefore(8);
+            doc.add(nota);
+
+            doc.close();
+            return out.toByteArray();
+        } catch (DocumentException e) {
+            throw new IllegalStateException("No se pudo generar el PDF de la cotizacion para cliente", e);
         }
     }
 

@@ -1,8 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { getTipoCambio } from "../api/endpoints";
-import { formatoNumero } from "../utils/format";
 import Icon from "./Icon";
 import logo from "../assets/logo-importsmart.svg";
 import "./Navbar.css";
@@ -19,12 +16,7 @@ const enlaces = [
 export default function Navbar() {
   const { usuario, logout } = useAuth();
   const navigate = useNavigate();
-  const [tc, setTc] = useState(null);
   const esAdmin = usuario?.rol === "ADMINISTRADOR";
-
-  useEffect(() => {
-    getTipoCambio().then(setTc).catch(() => setTc(null));
-  }, []);
 
   const salir = () => {
     logout();
@@ -32,6 +24,7 @@ export default function Navbar() {
   };
 
   const visibles = enlaces.filter((e) => !e.soloAdmin || esAdmin);
+  const nombreVisible = esAdmin ? "Administrador" : (usuario?.nombre || "Usuario").replace(" ImportSmart", "");
 
   return (
     <header className="pch-navbar">
@@ -54,14 +47,8 @@ export default function Navbar() {
       </nav>
 
       <div className="pch-navbar-usuario">
-        {tc && (
-          <span className="tc-chip" title={"Fuente: " + tc.fuente}>
-            <Icon name="exchange" size={14} />
-            1&nbsp;USD = {formatoNumero(tc.colonesPorDolar, 2)}&nbsp;CRC
-          </span>
-        )}
         <span className="pch-navbar-avatar"><Icon name="user" size={18} /></span>
-        <span>{usuario?.nombre}</span>
+        <span>{nombreVisible}</span>
         <span className={"badge " + (esAdmin ? "badge-azul" : "badge-gris")}>{esAdmin ? "Administrador" : "Operador"}</span>
         <button className="btn btn-secundario" onClick={salir}>
           <Icon name="logout" size={14} />

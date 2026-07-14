@@ -1,6 +1,7 @@
 package com.importsmart.controller;
 
 import com.importsmart.dto.TipoCambioDTO;
+import com.importsmart.dto.ConversionMonedaDTO;
 import com.importsmart.service.TipoCambioService;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,5 +36,13 @@ public class TipoCambioController {
                 "fuente", tc.getFuente(),
                 "enLinea", tc.isEnLinea()
         );
+    }
+
+    /** Convierte cualquier moneda soportada por la API externa (ej. USD -> CRC, EUR -> USD). */
+    @GetMapping("/convertir-moneda")
+    public ConversionMonedaDTO convertirMoneda(@RequestParam BigDecimal monto,
+                                               @RequestParam String origen,
+                                               @RequestParam String destino) {
+        return tipoCambioService.convertir(monto, origen, destino);
     }
 }

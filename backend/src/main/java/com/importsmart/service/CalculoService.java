@@ -13,7 +13,7 @@ import java.math.RoundingMode;
  *
  *  - Peso volumetrico (RF-06): (largo * ancho * alto en cm) / divisor.
  *  - Peso facturable (RF-07): el mayor entre el peso real y el peso volumetrico.
- *  - Costo de envio (RF-07): peso facturable total * tarifa por kg de la modalidad.
+ *  - Costo de envio (RF-07): peso real a tarifa base + excedente volumetrico.
  *  - Utilidad (RF-08): venta - (costo de productos + envio + gastos adicionales).
  *  - Semaforo de rentabilidad (RF-12): segun el margen (%).
  */
@@ -22,6 +22,12 @@ public class CalculoService {
 
     @Value("${app.envio.divisor-volumetrico:5000}")
     private BigDecimal divisorVolumetrico;
+
+    @Value("${app.envio.costo-kg-real:20}")
+    private BigDecimal costoKgReal;
+
+    @Value("${app.envio.costo-kg-volumetrico-excedente:18}")
+    private BigDecimal costoKgVolumetricoExcedente;
 
     @Value("${app.rentabilidad.umbral-rentable:25}")
     private BigDecimal umbralRentable;
@@ -47,9 +53,14 @@ public class CalculoService {
         return nz(pesoReal).max(nz(pesoVolumetrico)).setScale(ESCALA, RoundingMode.HALF_UP);
     }
 
-    /** Costo de envio = peso facturable total * tarifa por kg (RF-07). */
-    public BigDecimal costoEnvio(BigDecimal pesoFacturableTotal, BigDecimal costoPorKg) {
-        return nz(pesoFacturableTotal).multiply(nz(costoPorKg)).setScale(ESCALA, RoundingMode.HALF_UP);
+    /** Costo de envio = peso real * 20 + excedente volumetrico * 18. */
+    public BigDecimal costoEnvio(BigDecimal pesoReal, BigDecimal pesoVolumetrico) {
+        BigDecimal real = nz(pesoReal);
+        BigDecimal vol = nz(pesoVolumetrico);
+        BigDecimal excedenteVolumetrico = vol.subtract(real).max(BigDecimal.ZERO);
+        return real.multiply(nz(costoKgReal))
+                .add(excedenteVolumetrico.multiply(nz(costoKgVolumetricoExcedente)))
+                .setScale(ESCALA, RoundingMode.HALF_UP);
     }
 
     /** Utilidad = venta - (costo productos + envio + gastos) (RF-08). */

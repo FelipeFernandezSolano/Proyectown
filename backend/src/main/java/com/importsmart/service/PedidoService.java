@@ -154,11 +154,13 @@ public class PedidoService {
         BigDecimal pesoRealTotal = BigDecimal.ZERO;
         BigDecimal pesoVolTotal = BigDecimal.ZERO;
         BigDecimal facturableTotal = BigDecimal.ZERO;
+        BigDecimal costoEnvio = BigDecimal.ZERO;
         if (req.getPaquetes() != null) {
             int n = 1;
             for (PaqueteDTO pk : req.getPaquetes()) {
                 BigDecimal vol = calculo.pesoVolumetrico(pk.getLargoCm(), pk.getAnchoCm(), pk.getAltoCm());
                 BigDecimal facturable = calculo.pesoFacturable(pk.getPesoRealKg(), vol);
+                BigDecimal real = nz(pk.getPesoRealKg());
 
                 Paquete paquete = new Paquete();
                 paquete.setPedido(p);
@@ -172,16 +174,15 @@ public class PedidoService {
                 paquete.setPesoFacturableKg(facturable);
                 p.getPaquetes().add(paquete);
 
-                pesoRealTotal = pesoRealTotal.add(nz(pk.getPesoRealKg()));
+                pesoRealTotal = pesoRealTotal.add(real);
                 pesoVolTotal = pesoVolTotal.add(vol);
                 facturableTotal = facturableTotal.add(facturable);
+                costoEnvio = costoEnvio.add(calculo.costoEnvio(real, vol));
                 n++;
             }
         }
 
         // ---- Costos, utilidad y semaforo ----
-        BigDecimal costoPorKg = tarifaPorKg(p.getTipoEnvio());
-        BigDecimal costoEnvio = calculo.costoEnvio(facturableTotal, costoPorKg);
         BigDecimal utilidad = calculo.utilidad(totalVenta, subtotal, costoEnvio, p.getGastosAdicionales());
         BigDecimal margen = calculo.margenPct(utilidad, totalVenta);
 

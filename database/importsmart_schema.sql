@@ -1,15 +1,7 @@
--- ===========================================================================
---  ImportSmart - Esquema MySQL + datos ficticios (proyecto Programacion Web)
---  Motor: MySQL 8 / MariaDB 10.4+   |   Charset: utf8mb4
---  Ejecutar:  mysql -u root -p < importsmart_schema.sql
---  Este archivo CREA la base 'importsmart', las tablas y carga datos de ejemplo.
--- ===========================================================================
 
-DROP DATABASE IF EXISTS importsmart;
 CREATE DATABASE importsmart CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE importsmart;
 
--- ---------------------------------------------------------------------------
 -- Tablas
 -- ---------------------------------------------------------------------------
 CREATE TABLE usuarios (
@@ -132,13 +124,12 @@ CREATE TABLE historial_estados (
 ) ENGINE=InnoDB;
 
 -- ---------------------------------------------------------------------------
--- Datos: usuarios (contrasenas mostradas abajo, guardadas con hash BCrypt)
 --   admin@importsmart.com    / admin123      (rol ADMINISTRADOR)
 --   operador@importsmart.com / operador123   (rol OPERADOR)
 -- ---------------------------------------------------------------------------
 INSERT INTO usuarios (nombre, email, password_hash, rol, activo) VALUES
-('Administrador ImportSmart', 'admin@importsmart.com', '$2b$10$6vctLYktZ.aewJvhcbKb7OD4Bamg.rVzqfJznqbTxkzks2i76bZI6', 'ADMINISTRADOR', 1),
-('Operador ImportSmart', 'operador@importsmart.com', '$2b$10$J20yDVjD7THutWbuddMdiOunNOw7KSUwYk3dbRYI1h0vnBwsh/OiC', 'OPERADOR', 1);
+('Administrador', 'admin@importsmart.com', '$2b$10$6vctLYktZ.aewJvhcbKb7OD4Bamg.rVzqfJznqbTxkzks2i76bZI6', 'ADMINISTRADOR', 1),
+('Operador', 'operador@importsmart.com', '$2b$10$J20yDVjD7THutWbuddMdiOunNOw7KSUwYk3dbRYI1h0vnBwsh/OiC', 'OPERADOR', 1);
 
 INSERT INTO categorias (nombre) VALUES
 ('Electronica'),
@@ -149,8 +140,8 @@ INSERT INTO categorias (nombre) VALUES
 ('Deportes y fitness');
 
 INSERT INTO tarifas_envio (tipo, costo_por_kg_usd, dias_estimados, descripcion) VALUES
-('AEREO', 12.5, 6, 'Envio aereo express: mas rapido, ideal para carga liviana o urgente.'),
-('MARITIMO', 3.2, 35, 'Envio maritimo consolidado: mas economico, ideal para carga voluminosa.');
+('AEREO', 20.0, 6, 'Tarifa comercial: $20 por kg real y $18 por kg de excedente volumetrico.'),
+('MARITIMO', 20.0, 35, 'Tarifa comercial: $20 por kg real y $18 por kg de excedente volumetrico.');
 
 INSERT INTO estados_pedido (nombre, orden, color) VALUES
 ('Cotizado', 1, '#5b6b7a'),
@@ -345,5 +336,191 @@ INSERT INTO historial_estados (pedido_id, estado_nombre, nota, fecha) VALUES
 (16, 'En bodega', 'Pedido paso a estado En bodega', '2026-06-15'),
 (16, 'En transito', 'Pedido paso a estado En transito', '2026-06-22'),
 (16, 'En aduana', 'Pedido paso a estado En aduana', '2026-06-29');
+
+
+
+DELIMITER //
+
+CREATE PROCEDURE cargar_pedidos_masivos()
+BEGIN
+  DECLARE i INT DEFAULT 17;
+  DECLARE cliente_id_v BIGINT;
+  DECLARE producto_1 BIGINT;
+  DECLARE producto_2 BIGINT;
+  DECLARE cant_1 INT;
+  DECLARE cant_2 INT;
+  DECLARE tipo_envio_v VARCHAR(20);
+  DECLARE estado_id_v BIGINT;
+  DECLARE estado_nombre_v VARCHAR(50);
+  DECLARE dias_estado INT;
+  DECLARE fecha_v DATE;
+  DECLARE costo_1 DECIMAL(12,2);
+  DECLARE costo_2 DECIMAL(12,2);
+  DECLARE venta_1 DECIMAL(12,2);
+  DECLARE venta_2 DECIMAL(12,2);
+  DECLARE subtotal_v DECIMAL(12,2);
+  DECLARE gastos_v DECIMAL(12,2);
+  DECLARE largo_v DECIMAL(10,2);
+  DECLARE ancho_v DECIMAL(10,2);
+  DECLARE alto_v DECIMAL(10,2);
+  DECLARE peso_real_v DECIMAL(10,2);
+  DECLARE peso_vol_v DECIMAL(10,2);
+  DECLARE peso_fact_v DECIMAL(10,2);
+  DECLARE costo_envio_v DECIMAL(12,2);
+  DECLARE margen_objetivo DECIMAL(6,2);
+  DECLARE total_venta_v DECIMAL(12,2);
+  DECLARE utilidad_v DECIMAL(12,2);
+  DECLARE margen_v DECIMAL(6,2);
+  DECLARE rentabilidad_v VARCHAR(20);
+
+  WHILE i <= 300 DO
+    SET cliente_id_v = ((i - 1) MOD 12) + 1;
+    SET producto_1 = ((i - 1) MOD 20) + 1;
+    SET producto_2 = (i MOD 20) + 1;
+    SET cant_1 = (i MOD 4) + 1;
+    SET cant_2 = ((i + 1) MOD 3) + 1;
+    SET tipo_envio_v = IF(i MOD 3 = 0, 'MARITIMO', 'AEREO');
+    SET estado_id_v = ((i - 1) MOD 7) + 1;
+    SET fecha_v = DATE_SUB('2026-07-13', INTERVAL (i MOD 120) DAY);
+
+    SELECT nombre INTO estado_nombre_v FROM estados_pedido WHERE id = estado_id_v;
+    SELECT costo_unitario, precio_venta INTO costo_1, venta_1 FROM productos WHERE id = producto_1;
+    SELECT costo_unitario, precio_venta INTO costo_2, venta_2 FROM productos WHERE id = producto_2;
+
+    SET subtotal_v = ROUND((costo_1 * cant_1) + (costo_2 * cant_2), 2);
+    SET gastos_v = ROUND(8 + (i MOD 38), 2);
+    SET largo_v = 24 + (i MOD 82);
+    SET ancho_v = 18 + (i MOD 44);
+    SET alto_v = 12 + (i MOD 68);
+    SET peso_real_v = ROUND(2 + ((i MOD 42) * 0.75), 2);
+    SET peso_vol_v = ROUND((largo_v * ancho_v * alto_v) / 5000, 2);
+    SET peso_fact_v = GREATEST(peso_real_v, peso_vol_v);
+    SET costo_envio_v = ROUND((peso_real_v * 20) + (GREATEST(peso_vol_v - peso_real_v, 0) * 18), 2);
+
+    SET margen_objetivo = CASE
+      WHEN i MOD 9 = 0 THEN 7
+      WHEN i MOD 5 = 0 THEN 16
+      ELSE 29
+    END;
+    SET total_venta_v = ROUND((subtotal_v + costo_envio_v + gastos_v) * (1 + (margen_objetivo / 100)), 2);
+    SET utilidad_v = ROUND(total_venta_v - subtotal_v - costo_envio_v - gastos_v, 2);
+    SET margen_v = ROUND((utilidad_v / total_venta_v) * 100, 2);
+    SET rentabilidad_v = CASE
+      WHEN margen_v >= 25 THEN 'RENTABLE'
+      WHEN margen_v >= 12 THEN 'POCO_RENTABLE'
+      ELSE 'NO_RENTABLE'
+    END;
+
+    INSERT INTO pedidos (
+      id, codigo, cliente_id, descripcion, tipo_envio, estado_pedido_id, tipo_cambio,
+      subtotal_productos, costo_envio, gastos_adicionales, total_venta, utilidad,
+      margen_pct, rentabilidad, peso_real_total, peso_volumetrico_total,
+      peso_facturable_total, fecha_pedido
+    ) VALUES (
+      i,
+      CONCAT('IMP-2026', LPAD(i, 4, '0')),
+      cliente_id_v,
+      CONCAT('Pedido demo masivo ', i, ' - ImportSmart'),
+      tipo_envio_v,
+      estado_id_v,
+      512.35,
+      subtotal_v,
+      costo_envio_v,
+      gastos_v,
+      total_venta_v,
+      utilidad_v,
+      margen_v,
+      rentabilidad_v,
+      peso_real_v,
+      peso_vol_v,
+      peso_fact_v,
+      fecha_v
+    );
+
+    INSERT INTO pedido_items (pedido_id, producto_id, cantidad, costo_unitario, precio_venta) VALUES
+    (i, producto_1, cant_1, costo_1, ROUND((total_venta_v * 0.52) / cant_1, 2)),
+    (i, producto_2, cant_2, costo_2, ROUND((total_venta_v * 0.48) / cant_2, 2));
+
+    INSERT INTO paquetes (
+      pedido_id, descripcion, largo_cm, ancho_cm, alto_cm, peso_real_kg,
+      peso_volumetrico_kg, peso_facturable_kg
+    ) VALUES (
+      i,
+      CONCAT('Caja demo ', i),
+      largo_v,
+      ancho_v,
+      alto_v,
+      peso_real_v,
+      peso_vol_v,
+      peso_fact_v
+    );
+
+    INSERT INTO historial_estados (pedido_id, estado_nombre, nota, fecha)
+    VALUES (i, 'Cotizado', 'Pedido demo generado para avance del proyecto', fecha_v);
+
+    IF estado_id_v >= 2 THEN
+      INSERT INTO historial_estados (pedido_id, estado_nombre, nota, fecha)
+      VALUES (i, 'Aprobado', 'Pedido demo aprobado', DATE_ADD(fecha_v, INTERVAL 2 DAY));
+    END IF;
+    IF estado_id_v >= 3 THEN
+      INSERT INTO historial_estados (pedido_id, estado_nombre, nota, fecha)
+      VALUES (i, 'Comprado', 'Pedido demo comprado', DATE_ADD(fecha_v, INTERVAL 4 DAY));
+    END IF;
+    IF estado_id_v >= 4 THEN
+      INSERT INTO historial_estados (pedido_id, estado_nombre, nota, fecha)
+      VALUES (i, 'En bodega', 'Pedido demo recibido en bodega', DATE_ADD(fecha_v, INTERVAL 6 DAY));
+    END IF;
+    IF estado_id_v >= 5 THEN
+      INSERT INTO historial_estados (pedido_id, estado_nombre, nota, fecha)
+      VALUES (i, 'En transito', 'Pedido demo en transito internacional', DATE_ADD(fecha_v, INTERVAL 8 DAY));
+    END IF;
+    IF estado_id_v >= 6 THEN
+      INSERT INTO historial_estados (pedido_id, estado_nombre, nota, fecha)
+      VALUES (i, 'En aduana', 'Pedido demo en proceso aduanal', DATE_ADD(fecha_v, INTERVAL 10 DAY));
+    END IF;
+    IF estado_id_v >= 7 THEN
+      INSERT INTO historial_estados (pedido_id, estado_nombre, nota, fecha)
+      VALUES (i, 'Entregado', 'Pedido demo entregado al cliente', DATE_ADD(fecha_v, INTERVAL 12 DAY));
+    END IF;
+
+    SET i = i + 1;
+  END WHILE;
+END//
+
+DELIMITER ;
+
+CALL cargar_pedidos_masivos();
+DROP PROCEDURE cargar_pedidos_masivos;
+
+-- Recalculo final con regla comercial actual:
+-- kg real a $20 y solo el excedente volumetrico a $18.
+UPDATE pedidos p
+JOIN (
+  SELECT
+    pedido_id,
+    ROUND(SUM(peso_real_kg), 2) AS peso_real_total,
+    ROUND(SUM(peso_volumetrico_kg), 2) AS peso_volumetrico_total,
+    ROUND(SUM(GREATEST(peso_real_kg, peso_volumetrico_kg)), 2) AS peso_facturable_total,
+    ROUND(SUM((peso_real_kg * 20) + (GREATEST(peso_volumetrico_kg - peso_real_kg, 0) * 18)), 2) AS costo_envio
+  FROM paquetes
+  GROUP BY pedido_id
+) calc ON calc.pedido_id = p.id
+SET
+  p.peso_real_total = calc.peso_real_total,
+  p.peso_volumetrico_total = calc.peso_volumetrico_total,
+  p.peso_facturable_total = calc.peso_facturable_total,
+  p.costo_envio = calc.costo_envio,
+  p.utilidad = ROUND(p.total_venta - p.subtotal_productos - calc.costo_envio - p.gastos_adicionales, 2),
+  p.margen_pct = CASE
+    WHEN p.total_venta > 0 THEN ROUND(((p.total_venta - p.subtotal_productos - calc.costo_envio - p.gastos_adicionales) / p.total_venta) * 100, 2)
+    ELSE 0
+  END,
+  p.rentabilidad = CASE
+    WHEN p.total_venta > 0 AND ROUND(((p.total_venta - p.subtotal_productos - calc.costo_envio - p.gastos_adicionales) / p.total_venta) * 100, 2) >= 25 THEN 'RENTABLE'
+    WHEN p.total_venta > 0 AND ROUND(((p.total_venta - p.subtotal_productos - calc.costo_envio - p.gastos_adicionales) / p.total_venta) * 100, 2) >= 12 THEN 'POCO_RENTABLE'
+    ELSE 'NO_RENTABLE'
+  END;
+
+-- Total esperado despues de ejecutar el script completo desde cero: 300 pedidos.
 
 -- Fin del script.

@@ -52,10 +52,16 @@ export const simular = (dto) => client.post("/simulacion", dto).then((r) => r.da
 export const getTipoCambio = () => client.get("/tipo-cambio").then((r) => r.data);
 export const convertirUsd = (usd) =>
   client.get("/tipo-cambio/convertir", { params: { usd } }).then((r) => r.data);
+export const convertirMoneda = ({ monto, origen, destino }) =>
+  client.get("/tipo-cambio/convertir-moneda", { params: { monto, origen, destino } }).then((r) => r.data);
 
 // ---- Cotizacion PDF (RF-16) ----
 export const descargarCotizacion = (pedidoId) =>
   client.get(`/cotizaciones/${pedidoId}/pdf`, { responseType: "blob" });
+export const descargarCotizacionInterna = (pedidoId) =>
+  client.get(`/cotizaciones/${pedidoId}/pdf-interno`, { responseType: "blob" });
+export const descargarCotizacionCliente = (pedidoId) =>
+  client.get(`/cotizaciones/${pedidoId}/pdf-cliente`, { responseType: "blob" });
 
 export const descargarBlob = (blobResponse, nombreArchivo) => {
   const url = window.URL.createObjectURL(new Blob([blobResponse.data]));

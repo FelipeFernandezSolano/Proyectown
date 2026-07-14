@@ -35,59 +35,91 @@ export default function Simulador() {
   };
 
   const mejorUtilidad = res ? Math.max(...res.comparacionModalidad.map((m) => Number(m.utilidad))) : null;
+  const peorCosto = res ? Math.max(...res.comparacionModalidad.map((m) => Number(m.costoEnvio))) : 0;
+  const mejorCosto = res ? Math.min(...res.comparacionModalidad.map((m) => Number(m.costoEnvio))) : 0;
+  const ahorro = peorCosto - mejorCosto;
 
   return (
     <div className="contenido">
-      <h2>Simulador de escenarios de envio</h2>
-      <p className="subtitulo-pagina">Compara aereo vs. maritimo y empaque consolidado vs. separado antes de comprar.</p>
-
-      <div className="card" style={{ marginBottom: 16 }}>
-        <h3 className="card-titulo"><span className="icono-titulo"><Icon name="box" size={16} /></span>Paquetes</h3>
-        {paquetes.map((pk, i) => (
-          <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "flex-end", flexWrap: "wrap" }}>
-            <div className="campo" style={{ flex: 1, minWidth: 120 }}><label>Descripcion</label>
-              <input value={pk.descripcion} onChange={(e) => setPaquete(i, "descripcion", e.target.value)} /></div>
-            <div className="campo" style={{ width: 90 }}><label>Largo</label>
-              <input type="number" min="0" value={pk.largoCm} onChange={(e) => setPaquete(i, "largoCm", e.target.value)} /></div>
-            <div className="campo" style={{ width: 90 }}><label>Ancho</label>
-              <input type="number" min="0" value={pk.anchoCm} onChange={(e) => setPaquete(i, "anchoCm", e.target.value)} /></div>
-            <div className="campo" style={{ width: 90 }}><label>Alto</label>
-              <input type="number" min="0" value={pk.altoCm} onChange={(e) => setPaquete(i, "altoCm", e.target.value)} /></div>
-            <div className="campo" style={{ width: 100 }}><label>Peso real</label>
-              <input type="number" min="0" value={pk.pesoRealKg} onChange={(e) => setPaquete(i, "pesoRealKg", e.target.value)} /></div>
-            <button className="btn-icono" onClick={() => delPaquete(i)}><Icon name="trash" size={16} /></button>
-          </div>
-        ))}
-        <button className="btn btn-secundario mini-boton" onClick={addPaquete}><Icon name="plus" size={14} />Agregar paquete</button>
+      <div className="page-header">
+        <div>
+          <span className="page-kicker"><Icon name="calculator" size={13} /> Decision antes de comprar</span>
+          <h2>Simulador de escenarios de envio</h2>
+          <p className="subtitulo-pagina">Compara aereo vs. maritimo y empaque consolidado vs. separado antes de comprometer la compra.</p>
+        </div>
+        {res && <div className="page-actions"><span className="badge badge-verde">Ahorro potencial: {formatoUSD(ahorro)}</span></div>}
       </div>
 
-      <div className="card" style={{ marginBottom: 16 }}>
-        <h3 className="card-titulo"><span className="icono-titulo"><Icon name="calculator" size={16} /></span>Valores del pedido (para estimar utilidad)</h3>
-        <div className="form-grid">
-          <div className="campo"><label>Costo de productos (USD)</label>
-            <input type="number" value={datos.subtotalProductos} onChange={(e) => setDatos({ ...datos, subtotalProductos: e.target.value })} /></div>
-          <div className="campo"><label>Precio de venta total (USD)</label>
-            <input type="number" value={datos.totalVenta} onChange={(e) => setDatos({ ...datos, totalVenta: e.target.value })} /></div>
-          <div className="campo"><label>Gastos adicionales (USD)</label>
-            <input type="number" value={datos.gastosAdicionales} onChange={(e) => setDatos({ ...datos, gastosAdicionales: e.target.value })} /></div>
+      <div className="split-workspace">
+        <div className="stack">
+          <div className="card">
+            <h3 className="card-titulo"><span className="icono-titulo"><Icon name="box" size={16} /></span>Paquetes a evaluar</h3>
+            {paquetes.map((pk, i) => (
+              <div key={i} className="form-row">
+                <div className="campo" style={{ flex: 1, minWidth: 130 }}><label>Descripcion</label>
+                  <input value={pk.descripcion} onChange={(e) => setPaquete(i, "descripcion", e.target.value)} /></div>
+                <div className="campo" style={{ width: 90 }}><label>Largo</label>
+                  <input type="number" min="0" value={pk.largoCm} onChange={(e) => setPaquete(i, "largoCm", e.target.value)} /></div>
+                <div className="campo" style={{ width: 90 }}><label>Ancho</label>
+                  <input type="number" min="0" value={pk.anchoCm} onChange={(e) => setPaquete(i, "anchoCm", e.target.value)} /></div>
+                <div className="campo" style={{ width: 90 }}><label>Alto</label>
+                  <input type="number" min="0" value={pk.altoCm} onChange={(e) => setPaquete(i, "altoCm", e.target.value)} /></div>
+                <div className="campo" style={{ width: 100 }}><label>Peso real</label>
+                  <input type="number" min="0" value={pk.pesoRealKg} onChange={(e) => setPaquete(i, "pesoRealKg", e.target.value)} /></div>
+                <button className="btn-icono" onClick={() => delPaquete(i)}><Icon name="trash" size={16} /></button>
+              </div>
+            ))}
+            <button className="btn btn-secundario mini-boton" onClick={addPaquete}><Icon name="plus" size={14} />Agregar paquete</button>
+          </div>
+
+          <div className="card">
+            <h3 className="card-titulo"><span className="icono-titulo"><Icon name="quote" size={16} /></span>Valores comerciales</h3>
+            <div className="form-grid">
+              <div className="campo"><label>Costo de productos (USD)</label>
+                <input type="number" value={datos.subtotalProductos} onChange={(e) => setDatos({ ...datos, subtotalProductos: e.target.value })} /></div>
+              <div className="campo"><label>Precio de venta total (USD)</label>
+                <input type="number" value={datos.totalVenta} onChange={(e) => setDatos({ ...datos, totalVenta: e.target.value })} /></div>
+              <div className="campo"><label>Gastos adicionales (USD)</label>
+                <input type="number" value={datos.gastosAdicionales} onChange={(e) => setDatos({ ...datos, gastosAdicionales: e.target.value })} /></div>
+            </div>
+            <div style={{ marginTop: 14 }}>
+              <button className="btn btn-azul" onClick={correr} disabled={cargando}>
+                <Icon name="exchange" size={15} />{cargando ? "Calculando..." : "Simular decision"}
+              </button>
+            </div>
+          </div>
         </div>
-        <div style={{ marginTop: 14 }}>
-          <button className="btn btn-azul" onClick={correr} disabled={cargando}>
-            <Icon name="exchange" size={15} />{cargando ? "Calculando…" : "Simular"}
-          </button>
-        </div>
+
+        <aside className="card summary-sidebar">
+          <h3 className="card-titulo"><span className="icono-titulo"><Icon name="timeline" size={16} /></span>Lectura comercial</h3>
+          {res ? (
+            <div className="alert-list">
+              <div className="alert-item">
+                <span className="alert-icon verde"><Icon name="check" size={15} /></span>
+                <div><strong>Recomendacion</strong><p>{res.recomendadoModalidad}</p></div>
+              </div>
+              <div className="alert-item">
+                <span className="alert-icon ambar"><Icon name="box" size={15} /></span>
+                <div><strong>Empaque</strong><p>{res.recomendadoEmpaque}</p></div>
+              </div>
+              <div className="metric-box"><span>Ahorro entre modalidades</span><b>{formatoUSD(ahorro)}</b></div>
+            </div>
+          ) : (
+            <div className="estado-vacio">Ejecute una simulacion para recibir recomendacion, ahorro y riesgo de margen.</div>
+          )}
+        </aside>
       </div>
 
       {res && (
         <>
-          <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card" style={{ marginTop: 16, marginBottom: 16 }}>
             <h3 className="card-titulo"><span className="icono-titulo"><Icon name="plane" size={16} /></span>Comparacion aereo vs. maritimo</h3>
             <div className="grid-comparacion">
               {res.comparacionModalidad.map((m) => {
                 const rent = RENTABILIDAD[m.rentabilidad];
                 const esMejor = Number(m.utilidad) === mejorUtilidad;
                 return (
-                  <div key={m.tipoEnvio} className={"panel-envio" + (esMejor ? " recomendado" : "")}>
+                  <div key={m.tipoEnvio} className={`panel-envio${esMejor ? " recomendado" : ""}`}>
                     <h4><Icon name={m.tipoEnvio === "MARITIMO" ? "ship" : "plane"} size={18} />{m.tipoEnvio}{esMejor && <span className="badge badge-verde">Recomendado</span>}</h4>
                     <div className="linea"><span>Tarifa</span><b>{formatoUSD(m.costoPorKg)}/kg</b></div>
                     <div className="linea"><span>Tiempo estimado</span><b>~{m.diasEstimados} dias</b></div>
@@ -99,7 +131,6 @@ export default function Simulador() {
                 );
               })}
             </div>
-            <p className="mensaje-info mensaje-exito" style={{ marginTop: 14 }}><Icon name="check" size={15} /> {res.recomendadoModalidad}</p>
           </div>
 
           <div className="card">
@@ -118,7 +149,6 @@ export default function Simulador() {
                 </div>
               ))}
             </div>
-            <p className="mensaje-info mensaje-exito" style={{ marginTop: 14 }}><Icon name="check" size={15} /> {res.recomendadoEmpaque}</p>
           </div>
         </>
       )}

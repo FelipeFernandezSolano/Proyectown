@@ -1,21 +1,28 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
-import { getKpis, getProductosMasRentables } from "../api/endpoints";
+import { convertirMoneda, getKpis, getProductosMasRentables, getTipoCambio } from "../api/endpoints";
 import { formatoUSD, formatoNumero } from "../utils/format";
 import KpiCard from "../components/KpiCard";
 import Icon from "../components/Icon";
 
 const COLORS = ["#12a37a", "#f59e0b", "#dc2626"];
+const MONEDAS = ["USD", "CRC", "EUR", "MXN", "COP", "CNY", "JPY", "GBP"];
 
 export default function Dashboard() {
   const [kpis, setKpis] = useState(null);
   const [productos, setProductos] = useState([]);
+  const [tc, setTc] = useState(null);
+  const [conversion, setConversion] = useState({ monto: 100, origen: "USD", destino: "CRC" });
+  const [resultadoConversion, setResultadoConversion] = useState(null);
+  const [errorConversion, setErrorConversion] = useState("");
 
   useEffect(() => {
     getKpis().then(setKpis).catch(() => setKpis(null));
     getProductosMasRentables(8).then(setProductos).catch(() => setProductos([]));
+    getTipoCambio().then(setTc).catch(() => setTc(null));
   }, []);
 
   const semaforo = kpis
@@ -27,20 +34,71 @@ export default function Dashboard() {
     : [];
 
   const barData = productos.map((p) => ({
-    nombre: p.nombre.length > 22 ? p.nombre.slice(0, 22) + "…" : p.nombre,
+    nombre: p.nombre,
     utilidad: Number(p.utilidadGenerada) || 0,
   }));
 
+  const utilidadPromedio = kpis && kpis.totalPedidos > 0
+    ? Number(kpis.utilidadTotal) / kpis.totalPedidos
+    : 0;
+
+  const ejecutarConversion = async () => {
+    try {
+      setErrorConversion("");
+      const data = await convertirMoneda(conversion);
+      setResultadoConversion(data);
+    } catch (_) {
+      setResultadoConversion(null);
+      setErrorConversion("No se pudo consultar la conversion en este momento.");
+    }
+  };
+
+  const alertas = kpis
+    ? [
+        {
+          tipo: kpis.noRentables > 0 ? "rojo" : "verde",
+          titulo: kpis.noRentables > 0 ? `${kpis.noRentables} pedido(s) no rentable(s)` : "Sin pedidos en perdida",
+          texto: kpis.noRentables > 0
+            ? "Revise precios, peso facturable o modalidad antes de aprobar nuevas compras."
+            : "La cartera actual no muestra pedidos clasificados como no rentables.",
+          icono: kpis.noRentables > 0 ? "x" : "check",
+          destino: kpis.noRentables > 0 ? "/pedidos?rentabilidad=NO_RENTABLE" : null,
+        },
+        {
+          tipo: kpis.pocoRentables > 0 ? "ambar" : "verde",
+          titulo: kpis.pocoRentables > 0 ? `${kpis.pocoRentables} pedido(s) con margen bajo` : "Margen operativo saludable",
+          texto: kpis.pocoRentables > 0
+            ? "Son candidatos para renegociar precio de venta o consolidar empaque."
+            : "No hay pedidos en zona de poca rentabilidad.",
+          icono: kpis.pocoRentables > 0 ? "clock" : "check",
+          destino: kpis.pocoRentables > 0 ? "/pedidos?rentabilidad=POCO_RENTABLE" : null,
+        },
+      ]
+    : [];
+
   return (
     <div className="contenido">
-      <h2>Panel de resultados</h2>
-      <p className="subtitulo-pagina">Resumen de importaciones, utilidad y rentabilidad.</p>
+      <div className="page-header">
+        <div>
+          <span className="page-kicker"><Icon name="dashboard" size={13} /> Operacion comercial</span>
+          <h2>Panel de resultados</h2>
+          <p className="subtitulo-pagina">Resumen ejecutivo de importaciones, utilidad y rentabilidad.</p>
+        </div>
+        {kpis && (
+          <div className="page-actions">
+            <span className="badge badge-azul">{kpis.totalPedidos} pedidos registrados</span>
+            <span className={kpis.noRentables > 0 ? "badge badge-rojo" : "badge badge-verde"}>
+              {kpis.noRentables > 0 ? "Pedidos no rentables" : "Operacion estable"}
+            </span>
+          </div>
+        )}
+      </div>
 
       <div className="grid-kpis">
-        <KpiCard etiqueta="Pedidos activos" valor={kpis ? kpis.pedidosActivos : "—"} />
-        <KpiCard etiqueta="Utilidad total" valor={kpis ? formatoUSD(kpis.utilidadTotal) : "—"} variante="verde" />
-        <KpiCard etiqueta="Ventas totales" valor={kpis ? formatoUSD(kpis.ventasTotales) : "—"} />
-        <KpiCard etiqueta="Costos acumulados" valor={kpis ? formatoUSD(kpis.costosAcumulados) : "—"} />
+        <KpiCard etiqueta="Pedidos activos" valor={kpis ? kpis.pedidosActivos : "-"} icono="box" ayuda="Carga en seguimiento" />
+        <KpiCard etiqueta="Utilidad total" valor={kpis ? formatoUSD(kpis.utilidadTotal) : "-"} variante="verde" icono="chart" ayuda="Resultado neto estimado" />
+        <KpiCard etiqueta="Ventas totales" valor={kpis ? formatoUSD(kpis.ventasTotales) : "-"} icono="quote" ayuda="Valor comercial cotizado" />
+        <KpiCard etiqueta="Costos acumulados" valor={kpis ? formatoUSD(kpis.costosAcumulados) : "-"} variante="ambar" icono="calculator" ayuda="Producto + envio + gastos" />
       </div>
 
       <div className="grid-graficos">
@@ -49,13 +107,13 @@ export default function Dashboard() {
           {barData.length === 0 ? (
             <div className="estado-vacio">Sin datos todavia.</div>
           ) : (
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={310}>
               <BarChart data={barData} layout="vertical" margin={{ left: 10, right: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                <XAxis type="number" tickFormatter={(v) => "$" + v} fontSize={12} />
-                <YAxis type="category" dataKey="nombre" width={150} fontSize={11} />
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#d9e5ec" />
+                <XAxis type="number" tickFormatter={(v) => `$${v}`} fontSize={12} />
+                <YAxis type="category" dataKey="nombre" width={220} fontSize={11} interval={0} />
                 <Tooltip formatter={(v) => formatoUSD(v)} />
-                <Bar dataKey="utilidad" fill="#0c6291" radius={[0, 6, 6, 0]} />
+                <Bar dataKey="utilidad" fill="#0c6291" radius={[0, 8, 8, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -67,16 +125,16 @@ export default function Dashboard() {
             <>
               <ResponsiveContainer width="100%" height={230}>
                 <PieChart>
-                  <Pie data={semaforo} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={2}>
-                    {semaforo.map((e, i) => <Cell key={i} fill={COLORS[i]} />)}
+                  <Pie data={semaforo} dataKey="value" nameKey="name" innerRadius={58} outerRadius={92} paddingAngle={3}>
+                    {semaforo.map((e, i) => <Cell key={e.name} fill={COLORS[i]} />)}
                   </Pie>
                   <Tooltip />
                 </PieChart>
               </ResponsiveContainer>
-              <div style={{ display: "flex", justifyContent: "space-around", marginTop: 8 }}>
-                <span className="semaforo"><span className="punto" style={{ background: COLORS[0] }} />{kpis.rentables} rentables</span>
-                <span className="semaforo"><span className="punto" style={{ background: COLORS[1] }} />{kpis.pocoRentables} poco</span>
-                <span className="semaforo"><span className="punto" style={{ background: COLORS[2] }} />{kpis.noRentables} no</span>
+              <div className="metric-strip">
+                <div className="metric-box"><span>Rentables</span><b className="num-positivo">{kpis.rentables}</b></div>
+                <div className="metric-box"><span>Margen bajo</span><b>{kpis.pocoRentables}</b></div>
+                <div className="metric-box"><span>No rentables</span><b className="num-negativo">{kpis.noRentables}</b></div>
               </div>
             </>
           ) : (
@@ -85,12 +143,87 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {kpis && (
-        <p className="texto-tenue">
-          Total de pedidos registrados: {kpis.totalPedidos}. Utilidad promedio por pedido:{" "}
-          {kpis.totalPedidos > 0 ? formatoUSD(Number(kpis.utilidadTotal) / kpis.totalPedidos) : "—"}.
-        </p>
-      )}
+      <div className="grid-operacion">
+        <div className="card">
+          <h3 className="card-titulo"><span className="icono-titulo"><Icon name="exchange" size={16} /></span>Conversor de moneda</h3>
+          {tc ? (
+            <>
+              <div className="metric-strip">
+                <div className="metric-box"><span>Referencia diaria</span><b>USD / CRC: {formatoNumero(tc.colonesPorDolar, 2)}</b></div>
+                <div className="metric-box"><span>Ultima actualizacion</span><b>{tc.fecha || "No disponible"}</b></div>
+              </div>
+              <div className="converter-panel">
+                <div className="campo">
+                  <label>Monto</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={conversion.monto}
+                    onChange={(e) => setConversion({ ...conversion, monto: e.target.value })}
+                  />
+                </div>
+                <div className="campo">
+                  <label>Origen</label>
+                  <select value={conversion.origen} onChange={(e) => setConversion({ ...conversion, origen: e.target.value })}>
+                    {MONEDAS.map((m) => <option key={m}>{m}</option>)}
+                  </select>
+                </div>
+                <div className="campo">
+                  <label>Destino</label>
+                  <select value={conversion.destino} onChange={(e) => setConversion({ ...conversion, destino: e.target.value })}>
+                    {MONEDAS.map((m) => <option key={m}>{m}</option>)}
+                  </select>
+                </div>
+                <button type="button" className="btn btn-primario" onClick={ejecutarConversion}>
+                  <Icon name="exchange" size={15} />
+                  Convertir
+                </button>
+              </div>
+              {resultadoConversion && (
+                <div className="conversion-result">
+                  <strong>{formatoNumero(resultadoConversion.resultado, 2)} {resultadoConversion.monedaDestino}</strong>
+                  <span>
+                    {formatoNumero(resultadoConversion.monto, 2)} {resultadoConversion.monedaOrigen}
+                    {" "}con tasa diaria de {resultadoConversion.fuente}.
+                  </span>
+                </div>
+              )}
+              {errorConversion && <div className="mensaje-error">{errorConversion}</div>}
+            </>
+          ) : (
+            <div className="estado-vacio">No se pudo consultar el tipo de cambio.</div>
+          )}
+        </div>
+
+        <div className="card">
+          <h3 className="card-titulo"><span className="icono-titulo"><Icon name="timeline" size={16} /></span>Alertas comerciales</h3>
+          {kpis ? (
+            <div className="alert-list">
+              {alertas.map((a) => (
+                a.destino ? (
+                  <Link className="alert-item alert-click" key={a.titulo} to={a.destino}>
+                    <span className={`alert-icon ${a.tipo}`}><Icon name={a.icono} size={15} /></span>
+                    <div><strong>{a.titulo}</strong><p>{a.texto}</p></div>
+                    <span className="alert-ir"><Icon name="arrowRight" size={15} /></span>
+                  </Link>
+                ) : (
+                  <div className="alert-item" key={a.titulo}>
+                    <span className={`alert-icon ${a.tipo}`}><Icon name={a.icono} size={15} /></span>
+                    <div><strong>{a.titulo}</strong><p>{a.texto}</p></div>
+                  </div>
+                )
+              ))}
+              <div className="alert-item">
+                <span className="alert-icon verde"><Icon name="chart" size={15} /></span>
+                <div><strong>Utilidad promedio: {formatoUSD(utilidadPromedio)}</strong><p>Indicador rapido para defender el valor comercial del sistema.</p></div>
+              </div>
+            </div>
+          ) : (
+            <div className="estado-vacio">Sin datos para generar alertas.</div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

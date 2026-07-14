@@ -30,15 +30,16 @@ export default function Login() {
     <div className="login-fondo">
       <form className="login-card" onSubmit={onSubmit}>
         <img src={logo} alt="ImportSmart" className="login-logo" />
-        <p className="login-subtitulo">Cotiza, planifica y controla tus importaciones</p>
+        <h2>Iniciar sesion</h2>
+        <p className="login-subtitulo">Acceso al sistema de importaciones</p>
 
         <div className="campo">
           <label>Correo</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@importsmart.com" required />
         </div>
         <div className="campo">
           <label>Contrasena</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="admin123" required />
         </div>
 
         {error && <p className="login-error">{error}</p>}

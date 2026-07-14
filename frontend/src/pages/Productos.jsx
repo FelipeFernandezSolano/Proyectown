@@ -13,6 +13,9 @@ const VACIO = {
   pesoKg: "", largoCm: "", anchoCm: "", altoCm: "", linkProveedor: "", activo: true,
 };
 
+const COSTO_KG_REAL = 20;
+const COSTO_KG_VOL_EXCEDENTE = 18;
+
 export default function Productos() {
   const { usuario } = useAuth();
   const esAdmin = usuario?.rol === "ADMINISTRADOR";
@@ -25,6 +28,7 @@ export default function Productos() {
   const [error, setError] = useState("");
 
   const cargar = () => buscarProductos(texto).then(setProductos).catch(() => setProductos([]));
+
   useEffect(() => {
     cargar();
     getCategorias().then(setCategorias).catch(() => setCategorias([]));
@@ -34,6 +38,17 @@ export default function Productos() {
   const pesoVol = (m) => {
     const v = (Number(m.largoCm) * Number(m.anchoCm) * Number(m.altoCm)) / 5000;
     return isFinite(v) ? v : 0;
+  };
+
+  const costoEnvioProducto = (m) => {
+    const real = Number(m.pesoKg) || 0;
+    const vol = pesoVol(m);
+    return (real * COSTO_KG_REAL) + (Math.max(vol - real, 0) * COSTO_KG_VOL_EXCEDENTE);
+  };
+
+  const proveedorHref = (url) => {
+    if (!url) return "";
+    return /^https?:\/\//i.test(url) ? url : `https://${url}`;
   };
 
   const validar = (m) => {
@@ -78,7 +93,11 @@ export default function Productos() {
     }
   };
 
-  const abrir = (datos) => { setError(""); setErrores({}); setModal(datos); };
+  const abrir = (datos) => {
+    setError("");
+    setErrores({});
+    setModal(datos);
+  };
 
   const confirmarEliminar = async () => {
     try { await eliminarProducto(aEliminar.id); } catch (_) {}
@@ -91,13 +110,16 @@ export default function Productos() {
       <h2>Productos</h2>
       <p className="subtitulo-pagina">
         {esAdmin
-          ? "Catalogo con costo, precio, peso y dimensiones (base del calculo volumetrico)."
-          : "Catalogo de productos con peso y dimensiones (solo lectura)."}
+          ? "Catalogo con costo, precio, peso y dimensiones."
+          : "Catalogo de productos con peso y dimensiones."}
+      </p>
+      <p className="texto-tenue nota-tarifa">
+        Tarifa de envio: $20 por kg real. Si el peso volumetrico supera al real, solo la diferencia se cobra a $18 por kg.
       </p>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
         <input
-          placeholder="Buscar producto…"
+          placeholder="Buscar producto..."
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && cargar()}
@@ -117,12 +139,13 @@ export default function Productos() {
             <tr>
               <th>Producto</th><th>Categoria</th>
               {esAdmin && <><th>Costo</th><th>Venta</th></>}
-              <th>Peso</th><th>Dim (L×A×A)</th>{esAdmin && <th></th>}
+              <th>Peso</th><th>Volum.</th><th>Dim (LxAxA)</th><th>Envio est.</th><th>Proveedor</th>
+              {esAdmin && <th></th>}
             </tr>
           </thead>
           <tbody>
             {productos.length === 0 && (
-              <tr><td colSpan={esAdmin ? 7 : 4}><div className="estado-vacio">No hay productos.</div></td></tr>
+              <tr><td colSpan={esAdmin ? 10 : 7}><div className="estado-vacio">No hay productos.</div></td></tr>
             )}
             {productos.map((p) => (
               <tr key={p.id} style={{ opacity: p.activo ? 1 : 0.5 }}>
@@ -130,7 +153,16 @@ export default function Productos() {
                 <td>{p.categoria?.nombre || "-"}</td>
                 {esAdmin && <><td>{formatoUSD(p.costoUnitario)}</td><td>{formatoUSD(p.precioVenta)}</td></>}
                 <td>{formatoNumero(p.pesoKg)} kg</td>
-                <td className="texto-tenue">{formatoNumero(p.largoCm, 0)}×{formatoNumero(p.anchoCm, 0)}×{formatoNumero(p.altoCm, 0)} cm</td>
+                <td>{formatoNumero(pesoVol(p))} kg</td>
+                <td className="texto-tenue">{formatoNumero(p.largoCm, 0)}x{formatoNumero(p.anchoCm, 0)}x{formatoNumero(p.altoCm, 0)} cm</td>
+                <td><b>{formatoUSD(costoEnvioProducto(p))}</b></td>
+                <td>
+                  {p.linkProveedor ? (
+                    <a className="proveedor-link" href={proveedorHref(p.linkProveedor)} target="_blank" rel="noreferrer">
+                      Ver proveedor <Icon name="arrowRight" size={13} />
+                    </a>
+                  ) : "-"}
+                </td>
                 {esAdmin && (
                   <td>
                     <div className="tabla-acciones">
@@ -158,7 +190,7 @@ export default function Productos() {
                 {errores.descripcion && <span className="campo-error">{errores.descripcion}</span>}</div>
               <div className="campo"><label>Categoria *</label>
                 <select value={modal.categoriaId || ""} onChange={(e) => setModal({ ...modal, categoriaId: e.target.value })}>
-                  <option value="">— Selecciona —</option>
+                  <option value="">-- Selecciona --</option>
                   {categorias.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                 </select>
                 {errores.categoriaId && <span className="campo-error">{errores.categoriaId}</span>}</div>
@@ -183,7 +215,10 @@ export default function Productos() {
               <div className="campo" style={{ gridColumn: "1 / -1" }}><label>Link del proveedor (opcional)</label>
                 <input value={modal.linkProveedor || ""} onChange={(e) => setModal({ ...modal, linkProveedor: e.target.value })} /></div>
             </div>
-            <p className="texto-tenue">Peso volumetrico estimado: <b>{formatoNumero(pesoVol(modal))} kg</b> (L×A×A / 5000)</p>
+            <p className="texto-tenue">
+              Peso volumetrico estimado: <b>{formatoNumero(pesoVol(modal))} kg</b> (LxAxA / 5000).
+              {" "}Envio estimado: <b>{formatoUSD(costoEnvioProducto(modal))}</b>.
+            </p>
             {error && <p className="mensaje-info mensaje-error">{error}</p>}
             <div className="modal-acciones">
               <button type="button" className="btn btn-secundario" onClick={() => setModal(null)}>Cancelar</button>
@@ -196,7 +231,7 @@ export default function Productos() {
       <ConfirmDialog
         abierto={!!aEliminar}
         titulo="Desactivar producto"
-        mensaje={aEliminar ? `¿Desactivar "${aEliminar.nombre}"? No se borra para no afectar pedidos previos.` : ""}
+        mensaje={aEliminar ? `Desactivar "${aEliminar.nombre}"? No se borra para no afectar pedidos previos.` : ""}
         textoConfirmar="Desactivar"
         onConfirmar={confirmarEliminar}
         onCancelar={() => setAEliminar(null)}

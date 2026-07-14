@@ -34,35 +34,39 @@ public class SimulacionService {
         BigDecimal realTotal = BigDecimal.ZERO;
         BigDecimal volTotal = BigDecimal.ZERO;
         BigDecimal facturableSeparado = BigDecimal.ZERO;
+        BigDecimal costoSeparado = BigDecimal.ZERO;
         int cantidad = 0;
         if (req.getPaquetes() != null) {
             for (PaqueteDTO pk : req.getPaquetes()) {
                 BigDecimal vol = calculo.pesoVolumetrico(pk.getLargoCm(), pk.getAnchoCm(), pk.getAltoCm());
                 BigDecimal facturable = calculo.pesoFacturable(pk.getPesoRealKg(), vol);
-                realTotal = realTotal.add(nz(pk.getPesoRealKg()));
+                BigDecimal real = nz(pk.getPesoRealKg());
+                realTotal = realTotal.add(real);
                 volTotal = volTotal.add(vol);
                 facturableSeparado = facturableSeparado.add(facturable);
+                costoSeparado = costoSeparado.add(calculo.costoEnvio(real, vol));
                 cantidad++;
             }
         }
         // Consolidado: los volumenes se suman, el peso facturable es el mayor entre real y volumetrico total.
         BigDecimal facturableConsolidado = calculo.pesoFacturable(realTotal, volTotal);
+        BigDecimal costoConsolidado = calculo.costoEnvio(realTotal, volTotal);
 
         TarifaEnvio aereo = tarifa(TipoEnvio.AEREO);
         TarifaEnvio maritimo = tarifa(TipoEnvio.MARITIMO);
 
         // ---- RF-11: comparacion de modalidad (usando el empaque actual = separado) ----
-        res.getComparacionModalidad().add(calcularModalidad(aereo, realTotal, volTotal, facturableSeparado, subtotal, totalVenta, gastos));
-        res.getComparacionModalidad().add(calcularModalidad(maritimo, realTotal, volTotal, facturableSeparado, subtotal, totalVenta, gastos));
+        res.getComparacionModalidad().add(calcularModalidad(aereo, realTotal, volTotal, facturableSeparado, costoSeparado, subtotal, totalVenta, gastos));
+        res.getComparacionModalidad().add(calcularModalidad(maritimo, realTotal, volTotal, facturableSeparado, costoSeparado, subtotal, totalVenta, gastos));
         res.setRecomendadoModalidad(recomendarModalidad(res));
 
         // ---- RF-10: escenarios de empaque ----
         res.getEscenariosEmpaque().add(escenario("Paquetes separados",
                 cantidad + " paquete(s) enviados por separado; cada caja paga su propio peso facturable.",
-                cantidad, realTotal, volTotal, facturableSeparado, aereo, maritimo));
+                cantidad, realTotal, volTotal, facturableSeparado, costoSeparado));
         res.getEscenariosEmpaque().add(escenario("Consolidado en una caja",
                 "Todo se empaca en una sola caja; el peso facturable es el mayor entre el peso real y el volumen total.",
-                1, realTotal, volTotal, facturableConsolidado, aereo, maritimo));
+                1, realTotal, volTotal, facturableConsolidado, costoConsolidado));
         BigDecimal ahorro = facturableSeparado.subtract(facturableConsolidado);
         res.setRecomendadoEmpaque(ahorro.signum() > 0
                 ? "Consolidar en una sola caja reduce el peso facturable en " + ahorro.stripTrailingZeros().toPlainString() + " kg."
@@ -71,11 +75,11 @@ public class SimulacionService {
     }
 
     private CalculoResumenDTO calcularModalidad(TarifaEnvio tarifa, BigDecimal real, BigDecimal vol,
-                                                BigDecimal facturable, BigDecimal subtotal,
+                                                BigDecimal facturable, BigDecimal costoEnvio,
+                                                BigDecimal subtotal,
                                                 BigDecimal totalVenta, BigDecimal gastos) {
         CalculoResumenDTO d = new CalculoResumenDTO();
         BigDecimal costoPorKg = tarifa != null ? nz(tarifa.getCostoPorKgUsd()) : BigDecimal.ZERO;
-        BigDecimal costoEnvio = calculo.costoEnvio(facturable, costoPorKg);
         BigDecimal utilidad = calculo.utilidad(totalVenta, subtotal, costoEnvio, gastos);
         BigDecimal margen = calculo.margenPct(utilidad, totalVenta);
         d.setTipoEnvio(tarifa != null ? tarifa.getTipo() : "N/D");
@@ -95,7 +99,7 @@ public class SimulacionService {
     }
 
     private EscenarioDTO escenario(String nombre, String detalle, int cantidad, BigDecimal real,
-                                   BigDecimal vol, BigDecimal facturable, TarifaEnvio aereo, TarifaEnvio maritimo) {
+                                   BigDecimal vol, BigDecimal facturable, BigDecimal costoEnvio) {
         EscenarioDTO e = new EscenarioDTO();
         e.setNombre(nombre);
         e.setDetalle(detalle);
@@ -103,8 +107,8 @@ public class SimulacionService {
         e.setPesoRealTotal(real);
         e.setPesoVolumetricoTotal(vol);
         e.setPesoFacturableTotal(facturable);
-        e.setCostoEnvioAereo(calculo.costoEnvio(facturable, aereo != null ? aereo.getCostoPorKgUsd() : BigDecimal.ZERO));
-        e.setCostoEnvioMaritimo(calculo.costoEnvio(facturable, maritimo != null ? maritimo.getCostoPorKgUsd() : BigDecimal.ZERO));
+        e.setCostoEnvioAereo(costoEnvio);
+        e.setCostoEnvioMaritimo(costoEnvio);
         return e;
     }
 

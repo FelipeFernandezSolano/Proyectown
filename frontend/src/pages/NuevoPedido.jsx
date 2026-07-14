@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  buscarClientes, getProductosActivos, getTarifas, crearPedido,
+  buscarClientes, getProductosActivos, crearPedido,
 } from "../api/endpoints";
 import { formatoUSD, formatoNumero, RENTABILIDAD } from "../utils/format";
 import Icon from "../components/Icon";
@@ -10,13 +10,15 @@ const pesoVol = (l, a, h) => {
   const v = (Number(l) * Number(a) * Number(h)) / 5000;
   return isFinite(v) ? v : 0;
 };
+const COSTO_KG_REAL = 20;
+const COSTO_KG_VOL_EXCEDENTE = 18;
+const costoEnvioPeso = (real, vol) => (real * COSTO_KG_REAL) + (Math.max(vol - real, 0) * COSTO_KG_VOL_EXCEDENTE);
 const clasificar = (m) => (m >= 25 ? "RENTABLE" : m >= 12 ? "POCO_RENTABLE" : "NO_RENTABLE");
 
 export default function NuevoPedido() {
   const navigate = useNavigate();
   const [clientes, setClientes] = useState([]);
   const [productos, setProductos] = useState([]);
-  const [tarifas, setTarifas] = useState([]);
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
 
@@ -27,14 +29,10 @@ export default function NuevoPedido() {
   useEffect(() => {
     buscarClientes("").then(setClientes).catch(() => {});
     getProductosActivos().then(setProductos).catch(() => {});
-    getTarifas().then(setTarifas).catch(() => {});
   }, []);
 
-  const tarifa = tarifas.find((t) => t.tipo === form.tipoEnvio);
-  const costoPorKg = tarifa ? Number(tarifa.costoPorKgUsd) : 0;
-
   const totales = useMemo(() => {
-    let subtotal = 0, totalVenta = 0, real = 0, vol = 0, facturable = 0;
+    let subtotal = 0, totalVenta = 0, real = 0, vol = 0, facturable = 0, costoEnvio = 0;
     items.forEach((it) => {
       const p = productos.find((x) => x.id === Number(it.productoId));
       if (!p) return;
@@ -44,17 +42,18 @@ export default function NuevoPedido() {
     });
     paquetes.forEach((pk) => {
       const v = pesoVol(pk.largoCm, pk.anchoCm, pk.altoCm);
-      const f = Math.max(Number(pk.pesoRealKg) || 0, v);
-      real += Number(pk.pesoRealKg) || 0;
+      const r = Number(pk.pesoRealKg) || 0;
+      const f = Math.max(r, v);
+      real += r;
       vol += v;
       facturable += f;
+      costoEnvio += costoEnvioPeso(r, v);
     });
-    const costoEnvio = facturable * costoPorKg;
     const gastos = Number(form.gastosAdicionales) || 0;
     const utilidad = totalVenta - subtotal - costoEnvio - gastos;
     const margen = totalVenta > 0 ? (utilidad / totalVenta) * 100 : 0;
     return { subtotal, totalVenta, real, vol, facturable, costoEnvio, utilidad, margen, rentabilidad: clasificar(margen) };
-  }, [items, paquetes, productos, costoPorKg, form.gastosAdicionales]);
+  }, [items, paquetes, productos, form.gastosAdicionales]);
 
   const addItem = () => setItems([...items, { productoId: "", cantidad: 1, costoUnitario: null, precioVenta: null }]);
   const setItem = (i, campo, val) => {
@@ -96,9 +95,8 @@ export default function NuevoPedido() {
           altoCm: Number(pk.altoCm), pesoRealKg: Number(pk.pesoRealKg),
         })),
       };
-      const creado = await crearPedido(dto);
+      await crearPedido(dto);
       navigate("/pedidos");
-      return creado;
     } catch (err) {
       setError(err.response?.data?.mensaje || "No se pudo crear el pedido.");
     } finally {
@@ -110,86 +108,109 @@ export default function NuevoPedido() {
 
   return (
     <div className="contenido">
-      <h2>Nuevo pedido de importacion</h2>
-      <p className="subtitulo-pagina">El sistema calcula peso volumetrico, envio, utilidad y rentabilidad en vivo.</p>
-
-      <div className="card" style={{ marginBottom: 16 }}>
-        <div className="form-grid">
-          <div className="campo"><label>Empresa cliente *</label>
-            <select value={form.clienteId} onChange={(e) => setForm({ ...form, clienteId: e.target.value })}>
-              <option value="">— Selecciona —</option>
-              {clientes.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-            </select></div>
-          <div className="campo"><label>Modalidad de envio</label>
-            <select value={form.tipoEnvio} onChange={(e) => setForm({ ...form, tipoEnvio: e.target.value })}>
-              <option value="AEREO">Aereo</option>
-              <option value="MARITIMO">Maritimo</option>
-            </select></div>
-          <div className="campo"><label>Gastos adicionales (USD)</label>
-            <input type="number" step="0.01" min="0" value={form.gastosAdicionales} onChange={(e) => setForm({ ...form, gastosAdicionales: e.target.value })} /></div>
-          <div className="campo" style={{ gridColumn: "1 / -1" }}><label>Descripcion (opcional)</label>
-            <input value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} placeholder="Se genera con los productos si se deja vacio" /></div>
+      <div className="page-header">
+        <div>
+          <span className="page-kicker"><Icon name="plus" size={13} /> Cotizacion operativa</span>
+          <h2>Nuevo pedido de importacion</h2>
+          <p className="subtitulo-pagina">Calcula peso volumetrico, envio, utilidad y rentabilidad antes de aprobar la compra.</p>
         </div>
       </div>
 
-      <div className="card" style={{ marginBottom: 16 }}>
-        <h3 className="card-titulo"><span className="icono-titulo"><Icon name="tag" size={16} /></span>Productos del pedido</h3>
-        {items.map((it, i) => (
-          <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "flex-end", flexWrap: "wrap" }}>
-            <div className="campo" style={{ flex: 2, minWidth: 200 }}><label>Producto</label>
-              <select value={it.productoId} onChange={(e) => setItem(i, "productoId", e.target.value)}>
-                <option value="">— Selecciona —</option>
-                {productos.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-              </select></div>
-            <div className="campo" style={{ width: 90 }}><label>Cant.</label>
-              <input type="number" min="1" value={it.cantidad} onChange={(e) => setItem(i, "cantidad", e.target.value)} /></div>
-            <div className="campo" style={{ width: 120 }}><label>Venta USD</label>
-              <input type="number" step="0.01" value={it.precioVenta ?? ""} onChange={(e) => setItem(i, "precioVenta", e.target.value)} /></div>
-            <button className="btn-icono" onClick={() => delItem(i)}><Icon name="trash" size={16} /></button>
+      <div className="split-workspace">
+        <div className="stack">
+          <div className="card">
+            <h3 className="card-titulo"><span className="icono-titulo"><Icon name="users" size={16} /></span>1. Datos comerciales</h3>
+            <div className="form-grid">
+              <div className="campo"><label>Empresa cliente *</label>
+                <select value={form.clienteId} onChange={(e) => setForm({ ...form, clienteId: e.target.value })}>
+                  <option value="">-- Selecciona --</option>
+                  {clientes.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                </select></div>
+              <div className="campo"><label>Modalidad de envio</label>
+                <select value={form.tipoEnvio} onChange={(e) => setForm({ ...form, tipoEnvio: e.target.value })}>
+                  <option value="AEREO">Aereo</option>
+                  <option value="MARITIMO">Maritimo</option>
+                </select></div>
+              <div className="campo"><label>Gastos adicionales (USD)</label>
+                <input type="number" step="0.01" min="0" value={form.gastosAdicionales} onChange={(e) => setForm({ ...form, gastosAdicionales: e.target.value })} /></div>
+              <div className="campo" style={{ gridColumn: "1 / -1" }}><label>Descripcion (opcional)</label>
+                <input value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} placeholder="Se genera con los productos si se deja vacio" /></div>
+            </div>
           </div>
-        ))}
-        <button className="btn btn-secundario mini-boton" onClick={addItem}><Icon name="plus" size={14} />Agregar producto</button>
-      </div>
 
-      <div className="card" style={{ marginBottom: 16 }}>
-        <h3 className="card-titulo"><span className="icono-titulo"><Icon name="box" size={16} /></span>Paquetes (dimensiones y peso real)</h3>
-        {paquetes.map((pk, i) => (
-          <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "flex-end", flexWrap: "wrap" }}>
-            <div className="campo" style={{ flex: 1, minWidth: 120 }}><label>Descripcion</label>
-              <input value={pk.descripcion} onChange={(e) => setPaquete(i, "descripcion", e.target.value)} /></div>
-            <div className="campo" style={{ width: 90 }}><label>Largo</label>
-              <input type="number" step="0.1" min="0" value={pk.largoCm} onChange={(e) => setPaquete(i, "largoCm", e.target.value)} /></div>
-            <div className="campo" style={{ width: 90 }}><label>Ancho</label>
-              <input type="number" step="0.1" min="0" value={pk.anchoCm} onChange={(e) => setPaquete(i, "anchoCm", e.target.value)} /></div>
-            <div className="campo" style={{ width: 90 }}><label>Alto</label>
-              <input type="number" step="0.1" min="0" value={pk.altoCm} onChange={(e) => setPaquete(i, "altoCm", e.target.value)} /></div>
-            <div className="campo" style={{ width: 100 }}><label>Peso real</label>
-              <input type="number" step="0.01" min="0" value={pk.pesoRealKg} onChange={(e) => setPaquete(i, "pesoRealKg", e.target.value)} /></div>
-            <span className="texto-tenue" style={{ paddingBottom: 10 }}>Vol: <b>{formatoNumero(pesoVol(pk.largoCm, pk.anchoCm, pk.altoCm))}</b> kg</span>
-            <button className="btn-icono" onClick={() => delPaquete(i)}><Icon name="trash" size={16} /></button>
+          <div className="card">
+            <h3 className="card-titulo"><span className="icono-titulo"><Icon name="tag" size={16} /></span>2. Productos del pedido</h3>
+            {items.length === 0 && <div className="estado-vacio">Agrega productos para calcular venta, costos y utilidad.</div>}
+            {items.map((it, i) => (
+              <div key={i} className="form-row">
+                <div className="campo" style={{ flex: 2, minWidth: 220 }}><label>Producto</label>
+                  <select value={it.productoId} onChange={(e) => setItem(i, "productoId", e.target.value)}>
+                    <option value="">-- Selecciona --</option>
+                    {productos.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                  </select></div>
+                <div className="campo" style={{ width: 90 }}><label>Cant.</label>
+                  <input type="number" min="1" value={it.cantidad} onChange={(e) => setItem(i, "cantidad", e.target.value)} /></div>
+                <div className="campo" style={{ width: 130 }}><label>Venta USD</label>
+                  <input type="number" step="0.01" value={it.precioVenta ?? ""} onChange={(e) => setItem(i, "precioVenta", e.target.value)} /></div>
+                <button className="btn-icono" onClick={() => delItem(i)}><Icon name="trash" size={16} /></button>
+              </div>
+            ))}
+            <button className="btn btn-secundario mini-boton" onClick={addItem}><Icon name="plus" size={14} />Agregar producto</button>
           </div>
-        ))}
-        <button className="btn btn-secundario mini-boton" onClick={addPaquete}><Icon name="plus" size={14} />Agregar paquete</button>
-      </div>
 
-      <div className="card">
-        <h3 className="card-titulo"><span className="icono-titulo"><Icon name="calculator" size={16} /></span>Resumen calculado</h3>
-        <div className="fila-total-form">
-          <div><span>Peso facturable</span><b>{formatoNumero(totales.facturable)} kg</b></div>
-          <div><span>Costo de envio</span><b>{formatoUSD(totales.costoEnvio)}</b></div>
-          <div><span>Subtotal productos</span><b>{formatoUSD(totales.subtotal)}</b></div>
-          <div><span>Total venta</span><b>{formatoUSD(totales.totalVenta)}</b></div>
-          <div><span>Utilidad ({formatoNumero(totales.margen)}%)</span>
-            <b className={totales.utilidad >= 0 ? "num-positivo" : "num-negativo"}>{formatoUSD(totales.utilidad)}</b></div>
-          <div><span>Rentabilidad</span><b><span className="semaforo"><span className="punto" style={{ background: rent.punto }} />{rent.texto}</span></b></div>
+          <div className="card">
+            <h3 className="card-titulo"><span className="icono-titulo"><Icon name="box" size={16} /></span>3. Paquetes y peso</h3>
+            {paquetes.map((pk, i) => (
+              <div key={i} className="form-row">
+                <div className="campo" style={{ flex: 1, minWidth: 130 }}><label>Descripcion</label>
+                  <input value={pk.descripcion} onChange={(e) => setPaquete(i, "descripcion", e.target.value)} /></div>
+                <div className="campo" style={{ width: 90 }}><label>Largo</label>
+                  <input type="number" step="0.1" min="0" value={pk.largoCm} onChange={(e) => setPaquete(i, "largoCm", e.target.value)} /></div>
+                <div className="campo" style={{ width: 90 }}><label>Ancho</label>
+                  <input type="number" step="0.1" min="0" value={pk.anchoCm} onChange={(e) => setPaquete(i, "anchoCm", e.target.value)} /></div>
+                <div className="campo" style={{ width: 90 }}><label>Alto</label>
+                  <input type="number" step="0.1" min="0" value={pk.altoCm} onChange={(e) => setPaquete(i, "altoCm", e.target.value)} /></div>
+                <div className="campo" style={{ width: 100 }}><label>Peso real</label>
+                  <input type="number" step="0.01" min="0" value={pk.pesoRealKg} onChange={(e) => setPaquete(i, "pesoRealKg", e.target.value)} /></div>
+                <span className="metric-box" style={{ padding: "8px 10px" }}><span>Vol.</span><b>{formatoNumero(pesoVol(pk.largoCm, pk.anchoCm, pk.altoCm))} kg</b></span>
+                <button className="btn-icono" onClick={() => delPaquete(i)}><Icon name="trash" size={16} /></button>
+              </div>
+            ))}
+            <button className="btn btn-secundario mini-boton" onClick={addPaquete}><Icon name="plus" size={14} />Agregar paquete</button>
+            <p className="texto-tenue nota-tarifa">
+              Tarifa de envio: $20 por kg real. Si el peso volumetrico supera al real, solo la diferencia se cobra a $18 por kg.
+            </p>
+          </div>
         </div>
-        {error && <p className="mensaje-info mensaje-error">{error}</p>}
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 16 }}>
-          <button className="btn btn-secundario" onClick={() => navigate("/pedidos")}>Cancelar</button>
-          <button className="btn btn-azul" onClick={guardar} disabled={guardando}>
-            {guardando ? "Guardando…" : "Crear pedido"}
-          </button>
-        </div>
+
+        <aside className="card summary-sidebar">
+          <h3 className="card-titulo"><span className="icono-titulo"><Icon name="calculator" size={16} /></span>Resumen de cotización</h3>
+          <div className="fila-total-form">
+            <div><span>Peso facturable</span><b>{formatoNumero(totales.facturable)} kg</b></div>
+            <div><span>Costo envio</span><b>{formatoUSD(totales.costoEnvio)}</b></div>
+            <div><span>Subtotal</span><b>{formatoUSD(totales.subtotal)}</b></div>
+            <div><span>Total venta</span><b>{formatoUSD(totales.totalVenta)}</b></div>
+            <div><span>Utilidad ({formatoNumero(totales.margen)}%)</span>
+              <b className={totales.utilidad >= 0 ? "num-positivo" : "num-negativo"}>{formatoUSD(totales.utilidad)}</b></div>
+            <div className="metric-rentabilidad"><span>Rentabilidad</span><b><span className="semaforo"><span className="punto" style={{ background: rent.punto }} />{rent.texto}</span></b></div>
+          </div>
+          <div className="alert-item" style={{ marginTop: 14 }}>
+            <span className={`alert-icon ${totales.rentabilidad === "RENTABLE" ? "verde" : totales.rentabilidad === "POCO_RENTABLE" ? "ambar" : "rojo"}`}>
+              <Icon name={totales.rentabilidad === "RENTABLE" ? "check" : "clock"} size={15} />
+            </span>
+            <div>
+              <strong>{totales.rentabilidad === "RENTABLE" ? "Pedido defendible" : "Revise el margen"}</strong>
+              <p>Use este resumen para decidir precio, modalidad y empaque antes de registrar el pedido.</p>
+            </div>
+          </div>
+          {error && <p className="mensaje-info mensaje-error">{error}</p>}
+          <div className="modal-acciones">
+            <button className="btn btn-secundario" onClick={() => navigate("/pedidos")}>Cancelar</button>
+            <button className="btn btn-azul" onClick={guardar} disabled={guardando}>
+              {guardando ? "Guardando..." : "Crear pedido"}
+            </button>
+          </div>
+        </aside>
       </div>
     </div>
   );
