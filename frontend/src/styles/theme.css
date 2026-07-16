@@ -669,6 +669,11 @@ table.tabla-pch tbody tr.fila-clickeable {
   font-weight: 600;
   font-size: 12.5px;
   line-height: 1.2;
+  min-height: 26px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  white-space: nowrap;
 }
 .semaforo .punto {
   width: 10px;
@@ -745,6 +750,24 @@ table.tabla-pch tbody tr.fila-clickeable {
 .metric-box b {
   color: var(--pch-gris-oscuro);
   font-size: 18px;
+}
+
+.metric-strip-compacta {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.metric-strip-compacta .metric-box {
+  padding: 9px 11px;
+}
+
+.metric-strip-compacta .metric-box span {
+  margin-bottom: 3px;
+  font-size: 11px;
+}
+
+.metric-strip-compacta .metric-box b {
+  font-size: 13.5px;
+  line-height: 1.3;
 }
 
 .alert-list {
@@ -983,15 +1006,140 @@ a.alert-item {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-width: 210px;
+  min-width: 240px;
 }
 .fila-total-form .metric-rentabilidad span {
   margin-bottom: 0;
 }
 .fila-total-form .metric-rentabilidad b {
+  display: inline-flex;
   font-size: 13px;
 }
 .mini-boton { padding: 6px 10px; font-size: 13px; }
+.btn-inline-form {
+  margin-top: 8px;
+}
+.toolbar-pedidos {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.toolbar-pedidos .tabs-pch {
+  margin-bottom: 0;
+}
+
+.buscador-tabla {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: min(420px, 100%);
+  padding: 8px 12px;
+  border: 1px solid var(--pch-borde);
+  border-radius: var(--pch-radio-chico);
+  background: var(--pch-blanco);
+  color: var(--pch-gris-medio);
+}
+
+.buscador-tabla input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--pch-gris-oscuro);
+  font-size: 14px;
+}
+
+.autocomplete {
+  position: relative;
+  width: 100%;
+}
+
+.autocomplete > input {
+  width: 100%;
+}
+
+.autocomplete-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 120;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--pch-borde);
+  border-radius: var(--pch-radio-chico);
+  background: var(--pch-blanco);
+  box-shadow: 0 16px 32px rgba(8, 47, 73, 0.14);
+}
+
+.autocomplete-list button {
+  width: 100%;
+  display: block;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 9px 10px;
+  border-radius: 7px;
+  color: var(--pch-gris-oscuro);
+  font-size: 13.5px;
+  cursor: pointer;
+}
+
+.autocomplete-list button:hover {
+  background: var(--pch-azul-claro);
+  color: var(--pch-azul-oscuro);
+}
+
+.filtros-pedidos {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 10px;
+  width: min(820px, 100%);
+}
+
+.filtros-pedidos .buscador-tabla {
+  min-width: 0;
+  width: 100%;
+}
+
+.filtros-clientes {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(130px, 1fr));
+  gap: 10px;
+  flex: 1 1 860px;
+}
+
+.filtros-clientes .buscador-tabla {
+  min-width: 0;
+  width: 100%;
+}
+
+.toolbar-catalogo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.buscador-catalogo {
+  flex: 1;
+}
+
+.select-catalogo {
+  min-width: 210px;
+  padding: 10px 12px;
+  border: 1px solid var(--pch-borde);
+  border-radius: var(--pch-radio-chico);
+  background: var(--pch-blanco);
+  color: var(--pch-gris-oscuro);
+  font-size: 14px;
+}
 .tabla-acciones {
   display: flex;
   align-items: center;
@@ -1029,6 +1177,17 @@ a.alert-item {
   .converter-panel {
     grid-template-columns: 1fr 1fr;
   }
+
+  .filtros-pedidos {
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
+    width: 100%;
+  }
+
+  .filtros-clientes {
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
+    width: 100%;
+    flex-basis: 100%;
+  }
 }
 
 @media (max-width: 640px) {
@@ -1054,6 +1213,14 @@ a.alert-item {
   }
 
   .converter-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .filtros-pedidos {
+    grid-template-columns: 1fr;
+  }
+
+  .filtros-clientes {
     grid-template-columns: 1fr;
   }
 }

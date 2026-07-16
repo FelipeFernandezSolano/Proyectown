@@ -1,6 +1,7 @@
 package com.importsmart.service;
 
 import com.importsmart.model.Rentabilidad;
+import com.importsmart.model.TipoEnvio;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -11,23 +12,29 @@ import java.math.RoundingMode;
  * Motor de calculos de ImportSmart. Centraliza las formulas de negocio para que sean
  * consistentes en todo el sistema (pedidos, simulador, cotizaciones).
  *
- *  - Peso volumetrico (RF-06): (largo * ancho * alto en cm) / divisor.
+ *  - Peso volumetrico aereo (RF-06): (largo * ancho * alto / 1,000,000) * 168.
  *  - Peso facturable (RF-07): el mayor entre el peso real y el peso volumetrico.
- *  - Costo de envio (RF-07): peso real a tarifa base + excedente volumetrico.
+ *  - Costo aereo: peso real a $20 + excedente volumetrico a $18.
+ *  - Costo maritimo: (largo * ancho * alto / 1,000,000) * 850.
  *  - Utilidad (RF-08): venta - (costo de productos + envio + gastos adicionales).
  *  - Semaforo de rentabilidad (RF-12): segun el margen (%).
  */
 @Service
 public class CalculoService {
 
-    @Value("${app.envio.divisor-volumetrico:5000}")
-    private BigDecimal divisorVolumetrico;
+    private static final BigDecimal MILLON = BigDecimal.valueOf(1_000_000);
 
     @Value("${app.envio.costo-kg-real:20}")
     private BigDecimal costoKgReal;
 
     @Value("${app.envio.costo-kg-volumetrico-excedente:18}")
     private BigDecimal costoKgVolumetricoExcedente;
+
+    @Value("${app.envio.factor-volumetrico-aereo:168}")
+    private BigDecimal factorVolumetricoAereo;
+
+    @Value("${app.envio.factor-maritimo-usd-m3:850}")
+    private BigDecimal factorMaritimoUsdM3;
 
     @Value("${app.rentabilidad.umbral-rentable:25}")
     private BigDecimal umbralRentable;
@@ -41,11 +48,17 @@ public class CalculoService {
         return v == null ? BigDecimal.ZERO : v;
     }
 
-    /** Peso volumetrico en kg a partir de las dimensiones en cm (RF-06). */
+    /** Volumen en metros cubicos a partir de dimensiones en centimetros. */
+    public BigDecimal volumenM3(BigDecimal largo, BigDecimal ancho, BigDecimal alto) {
+        return nz(largo).multiply(nz(ancho)).multiply(nz(alto))
+                .divide(MILLON, 3, RoundingMode.HALF_UP);
+    }
+
+    /** Peso volumetrico aereo en kg: (largo * ancho * alto / 1,000,000) * 168. */
     public BigDecimal pesoVolumetrico(BigDecimal largo, BigDecimal ancho, BigDecimal alto) {
-        BigDecimal vol = nz(largo).multiply(nz(ancho)).multiply(nz(alto));
-        if (divisorVolumetrico == null || divisorVolumetrico.signum() == 0) return BigDecimal.ZERO;
-        return vol.divide(divisorVolumetrico, ESCALA, RoundingMode.HALF_UP);
+        return volumenM3(largo, ancho, alto)
+                .multiply(nz(factorVolumetricoAereo))
+                .setScale(3, RoundingMode.HALF_UP);
     }
 
     /** Peso facturable: el mayor entre real y volumetrico (RF-07). */
@@ -53,13 +66,28 @@ public class CalculoService {
         return nz(pesoReal).max(nz(pesoVolumetrico)).setScale(ESCALA, RoundingMode.HALF_UP);
     }
 
-    /** Costo de envio = peso real * 20 + excedente volumetrico * 18. */
+    /** Costo aereo = peso real * 20 + excedente volumetrico * 18. */
     public BigDecimal costoEnvio(BigDecimal pesoReal, BigDecimal pesoVolumetrico) {
         BigDecimal real = nz(pesoReal);
         BigDecimal vol = nz(pesoVolumetrico);
         BigDecimal excedenteVolumetrico = vol.subtract(real).max(BigDecimal.ZERO);
         return real.multiply(nz(costoKgReal))
                 .add(excedenteVolumetrico.multiply(nz(costoKgVolumetricoExcedente)))
+                .setScale(ESCALA, RoundingMode.HALF_UP);
+    }
+
+    public BigDecimal costoEnvio(BigDecimal pesoReal, BigDecimal pesoVolumetrico,
+                                 TipoEnvio tipoEnvio, BigDecimal largo, BigDecimal ancho, BigDecimal alto) {
+        if (tipoEnvio == TipoEnvio.MARITIMO) {
+            return costoEnvioMaritimo(largo, ancho, alto);
+        }
+        return costoEnvio(pesoReal, pesoVolumetrico);
+    }
+
+    /** Costo maritimo = volumen m3 * 850 USD. */
+    public BigDecimal costoEnvioMaritimo(BigDecimal largo, BigDecimal ancho, BigDecimal alto) {
+        return volumenM3(largo, ancho, alto)
+                .multiply(nz(factorMaritimoUsdM3))
                 .setScale(ESCALA, RoundingMode.HALF_UP);
     }
 

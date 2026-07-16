@@ -34,7 +34,8 @@ public class SimulacionService {
         BigDecimal realTotal = BigDecimal.ZERO;
         BigDecimal volTotal = BigDecimal.ZERO;
         BigDecimal facturableSeparado = BigDecimal.ZERO;
-        BigDecimal costoSeparado = BigDecimal.ZERO;
+        BigDecimal costoAereoSeparado = BigDecimal.ZERO;
+        BigDecimal costoMaritimoSeparado = BigDecimal.ZERO;
         int cantidad = 0;
         if (req.getPaquetes() != null) {
             for (PaqueteDTO pk : req.getPaquetes()) {
@@ -44,29 +45,32 @@ public class SimulacionService {
                 realTotal = realTotal.add(real);
                 volTotal = volTotal.add(vol);
                 facturableSeparado = facturableSeparado.add(facturable);
-                costoSeparado = costoSeparado.add(calculo.costoEnvio(real, vol));
+                costoAereoSeparado = costoAereoSeparado.add(calculo.costoEnvio(real, vol));
+                costoMaritimoSeparado = costoMaritimoSeparado.add(calculo.costoEnvioMaritimo(
+                        pk.getLargoCm(), pk.getAnchoCm(), pk.getAltoCm()));
                 cantidad++;
             }
         }
         // Consolidado: los volumenes se suman, el peso facturable es el mayor entre real y volumetrico total.
         BigDecimal facturableConsolidado = calculo.pesoFacturable(realTotal, volTotal);
-        BigDecimal costoConsolidado = calculo.costoEnvio(realTotal, volTotal);
+        BigDecimal costoAereoConsolidado = calculo.costoEnvio(realTotal, volTotal);
+        BigDecimal costoMaritimoConsolidado = costoMaritimoSeparado;
 
         TarifaEnvio aereo = tarifa(TipoEnvio.AEREO);
         TarifaEnvio maritimo = tarifa(TipoEnvio.MARITIMO);
 
         // ---- RF-11: comparacion de modalidad (usando el empaque actual = separado) ----
-        res.getComparacionModalidad().add(calcularModalidad(aereo, realTotal, volTotal, facturableSeparado, costoSeparado, subtotal, totalVenta, gastos));
-        res.getComparacionModalidad().add(calcularModalidad(maritimo, realTotal, volTotal, facturableSeparado, costoSeparado, subtotal, totalVenta, gastos));
+        res.getComparacionModalidad().add(calcularModalidad(aereo, realTotal, volTotal, facturableSeparado, costoAereoSeparado, subtotal, totalVenta, gastos));
+        res.getComparacionModalidad().add(calcularModalidad(maritimo, realTotal, volTotal, facturableSeparado, costoMaritimoSeparado, subtotal, totalVenta, gastos));
         res.setRecomendadoModalidad(recomendarModalidad(res));
 
         // ---- RF-10: escenarios de empaque ----
         res.getEscenariosEmpaque().add(escenario("Paquetes separados",
                 cantidad + " paquete(s) enviados por separado; cada caja paga su propio peso facturable.",
-                cantidad, realTotal, volTotal, facturableSeparado, costoSeparado));
+                cantidad, realTotal, volTotal, facturableSeparado, costoAereoSeparado, costoMaritimoSeparado));
         res.getEscenariosEmpaque().add(escenario("Consolidado en una caja",
                 "Todo se empaca en una sola caja; el peso facturable es el mayor entre el peso real y el volumen total.",
-                1, realTotal, volTotal, facturableConsolidado, costoConsolidado));
+                1, realTotal, volTotal, facturableConsolidado, costoAereoConsolidado, costoMaritimoConsolidado));
         BigDecimal ahorro = facturableSeparado.subtract(facturableConsolidado);
         res.setRecomendadoEmpaque(ahorro.signum() > 0
                 ? "Consolidar en una sola caja reduce el peso facturable en " + ahorro.stripTrailingZeros().toPlainString() + " kg."
@@ -99,7 +103,7 @@ public class SimulacionService {
     }
 
     private EscenarioDTO escenario(String nombre, String detalle, int cantidad, BigDecimal real,
-                                   BigDecimal vol, BigDecimal facturable, BigDecimal costoEnvio) {
+                                   BigDecimal vol, BigDecimal facturable, BigDecimal costoAereo, BigDecimal costoMaritimo) {
         EscenarioDTO e = new EscenarioDTO();
         e.setNombre(nombre);
         e.setDetalle(detalle);
@@ -107,8 +111,8 @@ public class SimulacionService {
         e.setPesoRealTotal(real);
         e.setPesoVolumetricoTotal(vol);
         e.setPesoFacturableTotal(facturable);
-        e.setCostoEnvioAereo(costoEnvio);
-        e.setCostoEnvioMaritimo(costoEnvio);
+        e.setCostoEnvioAereo(costoAereo);
+        e.setCostoEnvioMaritimo(costoMaritimo);
         return e;
     }
 

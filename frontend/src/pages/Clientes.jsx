@@ -4,6 +4,7 @@ import { requerido, validarEmail, validarTelefono } from "../utils/validaciones"
 import { useAuth } from "../context/AuthContext";
 import ConfirmDialog from "../components/ConfirmDialog";
 import Icon from "../components/Icon";
+import AutocompleteInput from "../components/AutocompleteInput";
 
 const VACIO = { nombre: "", contacto: "", email: "", telefono: "", pais: "Costa Rica", direccion: "" };
 
@@ -11,14 +12,17 @@ export default function Clientes() {
   const { usuario } = useAuth();
   const esAdmin = usuario?.rol === "ADMINISTRADOR";
   const [clientes, setClientes] = useState([]);
-  const [texto, setTexto] = useState("");
+  const [busqueda, setBusqueda] = useState({ numero: "", empresa: "", contacto: "", telefono: "", pais: "" });
   const [modal, setModal] = useState(null);
   const [errores, setErrores] = useState({});
   const [aEliminar, setAEliminar] = useState(null);
   const [error, setError] = useState("");
 
-  const cargar = () => buscarClientes(texto).then(setClientes).catch(() => setClientes([]));
-  useEffect(() => { cargar(); /* eslint-disable-next-line */ }, []);
+  const cargar = () => buscarClientes("").then(setClientes).catch(() => setClientes([]));
+
+  useEffect(() => {
+    cargar();
+  }, []);
 
   const validar = (m) => {
     const e = {};
@@ -42,9 +46,12 @@ export default function Clientes() {
     try {
       const dto = {
         ...modal,
-        nombre: modal.nombre.trim(), contacto: modal.contacto.trim(),
-        email: modal.email.trim(), telefono: modal.telefono.trim(),
-        pais: modal.pais.trim(), direccion: modal.direccion.trim(),
+        nombre: modal.nombre.trim(),
+        contacto: modal.contacto.trim(),
+        email: modal.email.trim(),
+        telefono: modal.telefono.trim(),
+        pais: modal.pais.trim(),
+        direccion: modal.direccion.trim(),
       };
       if (modal.id) await actualizarCliente(modal.id, dto);
       else await crearCliente(dto);
@@ -55,13 +62,38 @@ export default function Clientes() {
     }
   };
 
-  const abrir = (datos) => { setError(""); setErrores({}); setModal(datos); };
+  const abrir = (datos) => {
+    setError("");
+    setErrores({});
+    setModal(datos);
+  };
 
   const confirmarEliminar = async () => {
     try { await eliminarCliente(aEliminar.id); } catch (_) {}
     setAEliminar(null);
     cargar();
   };
+
+  const filtrosTexto = {
+    numero: busqueda.numero.trim().toLowerCase(),
+    empresa: busqueda.empresa.trim().toLowerCase(),
+    contacto: busqueda.contacto.trim().toLowerCase(),
+    telefono: busqueda.telefono.trim().toLowerCase(),
+    pais: busqueda.pais.trim().toLowerCase(),
+  };
+  const clientesFiltrados = clientes.filter((c) => (
+    (!filtrosTexto.numero || String(c.numeroCliente || "").toLowerCase().includes(filtrosTexto.numero))
+    && (!filtrosTexto.empresa || String(c.nombre || "").toLowerCase().includes(filtrosTexto.empresa))
+    && (!filtrosTexto.contacto || String(c.contacto || "").toLowerCase().includes(filtrosTexto.contacto))
+    && (!filtrosTexto.telefono || String(c.telefono || "").toLowerCase().includes(filtrosTexto.telefono))
+    && (!filtrosTexto.pais || String(c.pais || "").toLowerCase().includes(filtrosTexto.pais))
+  ));
+  const opcionesNumero = Array.from(new Set(clientes.map((c) => c.numeroCliente).filter(Boolean)));
+  const opcionesEmpresa = Array.from(new Set(clientes.map((c) => c.nombre).filter(Boolean)));
+  const opcionesContacto = Array.from(new Set(clientes.map((c) => c.contacto).filter(Boolean)));
+  const opcionesTelefono = Array.from(new Set(clientes.map((c) => c.telefono).filter(Boolean)));
+  const opcionesPais = Array.from(new Set(clientes.map((c) => c.pais).filter(Boolean)));
+  const setFiltro = (campo, valor) => setBusqueda((actual) => ({ ...actual, [campo]: valor }));
 
   return (
     <div className="contenido">
@@ -70,15 +102,56 @@ export default function Clientes() {
         {esAdmin ? "Registra y administra las empresas que importan contigo." : "Consulta de empresas (solo lectura)."}
       </p>
 
-      <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
-        <input
-          placeholder="Buscar por nombre, contacto o numero…"
-          value={texto}
-          onChange={(e) => setTexto(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && cargar()}
-          style={{ flex: 1, minWidth: 240, padding: "10px 12px", borderRadius: 8, border: "1px solid var(--pch-borde)" }}
-        />
-        <button className="btn btn-secundario" onClick={cargar}><Icon name="search" size={15} />Buscar</button>
+      <div className="toolbar-catalogo">
+        <div className="filtros-clientes">
+          <div className="buscador-tabla">
+            <Icon name="search" size={15} />
+            <AutocompleteInput
+              placeholder="Numero"
+              value={busqueda.numero}
+              onChange={(valor) => setFiltro("numero", valor)}
+              options={opcionesNumero}
+            />
+          </div>
+          <div className="buscador-tabla">
+            <Icon name="users" size={15} />
+            <AutocompleteInput
+              placeholder="Empresa"
+              value={busqueda.empresa}
+              onChange={(valor) => setFiltro("empresa", valor)}
+              options={opcionesEmpresa}
+            />
+          </div>
+          <div className="buscador-tabla">
+            <Icon name="user" size={15} />
+            <AutocompleteInput
+              placeholder="Contacto"
+              value={busqueda.contacto}
+              onChange={(valor) => setFiltro("contacto", valor)}
+              options={opcionesContacto}
+            />
+          </div>
+          <div className="buscador-tabla">
+            <Icon name="tag" size={15} />
+            <AutocompleteInput
+              placeholder="Telefono"
+              value={busqueda.telefono}
+              onChange={(valor) => setFiltro("telefono", valor)}
+              options={opcionesTelefono}
+            />
+          </div>
+          <div className="buscador-tabla">
+            <Icon name="plane" size={15} />
+            <AutocompleteInput
+              placeholder="Pais"
+              value={busqueda.pais}
+              onChange={(valor) => setFiltro("pais", valor)}
+              options={opcionesPais}
+              showAllOnFocus
+            />
+          </div>
+        </div>
+        <button className="btn btn-secundario" onClick={cargar}><Icon name="search" size={15} />Actualizar</button>
         {esAdmin && (
           <button className="btn btn-azul" onClick={() => abrir({ ...VACIO })}>
             <Icon name="plus" size={15} />Nueva empresa
@@ -94,10 +167,10 @@ export default function Clientes() {
             </tr>
           </thead>
           <tbody>
-            {clientes.length === 0 && (
-              <tr><td colSpan={esAdmin ? 6 : 5}><div className="estado-vacio">No hay empresas registradas.</div></td></tr>
+            {clientesFiltrados.length === 0 && (
+              <tr><td colSpan={esAdmin ? 6 : 5}><div className="estado-vacio">No hay empresas para este filtro.</div></td></tr>
             )}
-            {clientes.map((c) => (
+            {clientesFiltrados.map((c) => (
               <tr key={c.id}>
                 <td>{c.numeroCliente}</td>
                 <td><b>{c.nombre}</b></td>
@@ -154,7 +227,7 @@ export default function Clientes() {
       <ConfirmDialog
         abierto={!!aEliminar}
         titulo="Eliminar empresa"
-        mensaje={aEliminar ? `¿Eliminar a ${aEliminar.nombre}?` : ""}
+        mensaje={aEliminar ? `Eliminar a ${aEliminar.nombre}?` : ""}
         onConfirmar={confirmarEliminar}
         onCancelar={() => setAEliminar(null)}
       />

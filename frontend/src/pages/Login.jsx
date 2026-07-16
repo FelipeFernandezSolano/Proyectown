@@ -48,9 +48,6 @@ export default function Login() {
           {cargando ? "Ingresando..." : "Ingresar"}
         </button>
 
-        <p className="login-demo">
-          Demo: <b>admin@importsmart.com</b> / <b>admin123</b>
-        </p>
       </form>
     </div>
   );

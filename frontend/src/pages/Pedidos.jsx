@@ -8,6 +8,7 @@ import { formatoUSD, formatoNumero, formatoFecha, RENTABILIDAD } from "../utils/
 import { useAuth } from "../context/AuthContext";
 import ConfirmDialog from "../components/ConfirmDialog";
 import Icon from "../components/Icon";
+import AutocompleteInput from "../components/AutocompleteInput";
 
 function Semaforo({ valor }) {
   const r = RENTABILIDAD[valor] || RENTABILIDAD.NO_RENTABLE;
@@ -24,6 +25,7 @@ export default function Pedidos() {
   const [nuevoEstado, setNuevoEstado] = useState("");
   const [nota, setNota] = useState("");
   const [aEliminar, setAEliminar] = useState(null);
+  const [busqueda, setBusqueda] = useState({ codigo: "", cliente: "", estado: "", envio: "" });
   const rentabilidadObjetivo = searchParams.get("rentabilidad");
 
   const abrir = async (id) => {
@@ -81,9 +83,26 @@ export default function Pedidos() {
   const rentables = pedidos.filter((p) => p.rentabilidad === "RENTABLE").length;
   const pocoRentables = pedidos.filter((p) => p.rentabilidad === "POCO_RENTABLE").length;
   const noRentables = pedidos.filter((p) => p.rentabilidad === "NO_RENTABLE").length;
-  const pedidosFiltrados = esAdmin && rentabilidadObjetivo
+  const pedidosPorRentabilidad = esAdmin && rentabilidadObjetivo
     ? pedidos.filter((p) => p.rentabilidad === rentabilidadObjetivo)
     : pedidos;
+  const filtrosTexto = {
+    codigo: busqueda.codigo.trim().toLowerCase(),
+    cliente: busqueda.cliente.trim().toLowerCase(),
+    estado: busqueda.estado.trim().toLowerCase(),
+    envio: busqueda.envio.trim().toLowerCase(),
+  };
+  const pedidosFiltrados = pedidosPorRentabilidad.filter((p) => (
+    (!filtrosTexto.codigo || String(p.codigo || "").toLowerCase().includes(filtrosTexto.codigo))
+    && (!filtrosTexto.cliente || String(p.clienteNombre || "").toLowerCase().includes(filtrosTexto.cliente))
+    && (!filtrosTexto.estado || String(p.estado || "").toLowerCase().includes(filtrosTexto.estado))
+    && (!filtrosTexto.envio || String(p.tipoEnvio || "").toLowerCase().includes(filtrosTexto.envio))
+  ));
+  const opcionesCodigo = Array.from(new Set(pedidos.map((p) => p.codigo).filter(Boolean)));
+  const opcionesCliente = Array.from(new Set(pedidos.map((p) => p.clienteNombre).filter(Boolean)));
+  const opcionesEstado = Array.from(new Set(pedidos.map((p) => p.estado).filter(Boolean)));
+  const opcionesEnvio = Array.from(new Set(pedidos.map((p) => p.tipoEnvio).filter(Boolean)));
+  const setFiltro = (campo, valor) => setBusqueda((actual) => ({ ...actual, [campo]: valor }));
 
   const cambiarFiltro = (rentabilidad) => {
     if (rentabilidad) setSearchParams({ rentabilidad });
@@ -116,19 +135,61 @@ export default function Pedidos() {
       </div>
 
       {esAdmin && (
-        <div className="tabs-pch">
-          {filtros.map((f) => (
-            <button
-              key={f.valor || "TODOS"}
-              type="button"
-              className={"tab-pch" + ((rentabilidadObjetivo || null) === f.valor ? " activo" : "")}
-              onClick={() => cambiarFiltro(f.valor)}
-            >
-              <Icon name={f.icono} size={14} />
-              {f.label}
-              <span className="conteo-tab">{f.conteo}</span>
-            </button>
-          ))}
+        <div className="toolbar-pedidos">
+          <div className="tabs-pch">
+            {filtros.map((f) => (
+              <button
+                key={f.valor || "TODOS"}
+                type="button"
+                className={"tab-pch" + ((rentabilidadObjetivo || null) === f.valor ? " activo" : "")}
+                onClick={() => cambiarFiltro(f.valor)}
+              >
+                <Icon name={f.icono} size={14} />
+                {f.label}
+                <span className="conteo-tab">{f.conteo}</span>
+              </button>
+            ))}
+          </div>
+          <div className="filtros-pedidos">
+            <div className="buscador-tabla">
+              <Icon name="search" size={15} />
+              <AutocompleteInput
+                value={busqueda.codigo}
+                onChange={(valor) => setFiltro("codigo", valor)}
+                options={opcionesCodigo}
+                placeholder="Codigo"
+              />
+            </div>
+            <div className="buscador-tabla">
+              <Icon name="users" size={15} />
+              <AutocompleteInput
+                value={busqueda.cliente}
+                onChange={(valor) => setFiltro("cliente", valor)}
+                options={opcionesCliente}
+                placeholder="Cliente"
+              />
+            </div>
+            <div className="buscador-tabla">
+              <Icon name="clock" size={15} />
+              <AutocompleteInput
+                value={busqueda.estado}
+                onChange={(valor) => setFiltro("estado", valor)}
+                options={opcionesEstado}
+                placeholder="Estado"
+                showAllOnFocus
+              />
+            </div>
+            <div className="buscador-tabla">
+              <Icon name="ship" size={15} />
+              <AutocompleteInput
+                value={busqueda.envio}
+                onChange={(valor) => setFiltro("envio", valor)}
+                options={opcionesEnvio}
+                placeholder="Envio"
+                showAllOnFocus
+              />
+            </div>
+          </div>
         </div>
       )}
 

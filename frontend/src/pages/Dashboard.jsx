@@ -11,6 +11,18 @@ import Icon from "../components/Icon";
 const COLORS = ["#12a37a", "#f59e0b", "#dc2626"];
 const MONEDAS = ["USD", "CRC", "EUR", "MXN", "COP", "CNY", "JPY", "GBP"];
 
+const formatoFechaCambio = (valor) => {
+  const fecha = new Date(valor);
+  if (Number.isNaN(fecha.getTime())) return valor || "No disponible";
+  return fecha.toLocaleString("es-CR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
 export default function Dashboard() {
   const [kpis, setKpis] = useState(null);
   const [productos, setProductos] = useState([]);
@@ -87,9 +99,6 @@ export default function Dashboard() {
         {kpis && (
           <div className="page-actions">
             <span className="badge badge-azul">{kpis.totalPedidos} pedidos registrados</span>
-            <span className={kpis.noRentables > 0 ? "badge badge-rojo" : "badge badge-verde"}>
-              {kpis.noRentables > 0 ? "Pedidos no rentables" : "Operacion estable"}
-            </span>
           </div>
         )}
       </div>
@@ -148,9 +157,9 @@ export default function Dashboard() {
           <h3 className="card-titulo"><span className="icono-titulo"><Icon name="exchange" size={16} /></span>Conversor de moneda</h3>
           {tc ? (
             <>
-              <div className="metric-strip">
+              <div className="metric-strip metric-strip-compacta">
                 <div className="metric-box"><span>Referencia diaria</span><b>USD / CRC: {formatoNumero(tc.colonesPorDolar, 2)}</b></div>
-                <div className="metric-box"><span>Ultima actualizacion</span><b>{tc.fecha || "No disponible"}</b></div>
+                <div className="metric-box"><span>Ultima actualizacion</span><b>{formatoFechaCambio(tc.fecha)}</b></div>
               </div>
               <div className="converter-panel">
                 <div className="campo">

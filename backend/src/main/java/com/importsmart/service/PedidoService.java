@@ -177,7 +177,8 @@ public class PedidoService {
                 pesoRealTotal = pesoRealTotal.add(real);
                 pesoVolTotal = pesoVolTotal.add(vol);
                 facturableTotal = facturableTotal.add(facturable);
-                costoEnvio = costoEnvio.add(calculo.costoEnvio(real, vol));
+                costoEnvio = costoEnvio.add(calculo.costoEnvio(
+                        real, vol, p.getTipoEnvio(), pk.getLargoCm(), pk.getAnchoCm(), pk.getAltoCm()));
                 n++;
             }
         }

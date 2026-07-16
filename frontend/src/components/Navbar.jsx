@@ -49,7 +49,6 @@ export default function Navbar() {
       <div className="pch-navbar-usuario">
         <span className="pch-navbar-avatar"><Icon name="user" size={18} /></span>
         <span>{nombreVisible}</span>
-        <span className={"badge " + (esAdmin ? "badge-azul" : "badge-gris")}>{esAdmin ? "Administrador" : "Operador"}</span>
         <button className="btn btn-secundario" onClick={salir}>
           <Icon name="logout" size={14} />
           Salir

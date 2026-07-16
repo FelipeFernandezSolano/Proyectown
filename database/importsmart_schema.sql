@@ -140,8 +140,8 @@ INSERT INTO categorias (nombre) VALUES
 ('Deportes y fitness');
 
 INSERT INTO tarifas_envio (tipo, costo_por_kg_usd, dias_estimados, descripcion) VALUES
-('AEREO', 20.0, 6, 'Tarifa comercial: $20 por kg real y $18 por kg de excedente volumetrico.'),
-('MARITIMO', 20.0, 35, 'Tarifa comercial: $20 por kg real y $18 por kg de excedente volumetrico.');
+('AEREO', 20.0, 6, 'Aereo: peso volumetrico = m3 x 168; kg real a $20 y excedente volumetrico a $18.'),
+('MARITIMO', 850.0, 35, 'Maritimo: costo = m3 x $850.');
 
 INSERT INTO estados_pedido (nombre, orden, color) VALUES
 ('Cotizado', 1, '#5b6b7a'),
@@ -393,9 +393,12 @@ BEGIN
     SET ancho_v = 18 + (i MOD 44);
     SET alto_v = 12 + (i MOD 68);
     SET peso_real_v = ROUND(2 + ((i MOD 42) * 0.75), 2);
-    SET peso_vol_v = ROUND((largo_v * ancho_v * alto_v) / 5000, 2);
+    SET peso_vol_v = ROUND(((largo_v * ancho_v * alto_v) / 1000000) * 168, 3);
     SET peso_fact_v = GREATEST(peso_real_v, peso_vol_v);
-    SET costo_envio_v = ROUND((peso_real_v * 20) + (GREATEST(peso_vol_v - peso_real_v, 0) * 18), 2);
+    SET costo_envio_v = CASE
+      WHEN tipo_envio_v = 'MARITIMO' THEN ROUND(((largo_v * ancho_v * alto_v) / 1000000) * 850, 2)
+      ELSE ROUND((peso_real_v * 20) + (GREATEST(peso_vol_v - peso_real_v, 0) * 18), 2)
+    END;
 
     SET margen_objetivo = CASE
       WHEN i MOD 9 = 0 THEN 7
@@ -492,18 +495,30 @@ DELIMITER ;
 CALL cargar_pedidos_masivos();
 DROP PROCEDURE cargar_pedidos_masivos;
 
--- Recalculo final con regla comercial actual:
--- kg real a $20 y solo el excedente volumetrico a $18.
+-- Recalculo final con reglas comerciales actuales:
+-- Aereo: peso volumetrico = m3 x 168; kg real a $20 y excedente volumetrico a $18.
+-- Maritimo: costo = m3 x $850.
+UPDATE paquetes
+SET
+  peso_volumetrico_kg = ROUND(((largo_cm * ancho_cm * alto_cm) / 1000000) * 168, 3),
+  peso_facturable_kg = GREATEST(peso_real_kg, ROUND(((largo_cm * ancho_cm * alto_cm) / 1000000) * 168, 3));
+
 UPDATE pedidos p
 JOIN (
   SELECT
-    pedido_id,
+    pk.pedido_id,
     ROUND(SUM(peso_real_kg), 2) AS peso_real_total,
-    ROUND(SUM(peso_volumetrico_kg), 2) AS peso_volumetrico_total,
+    ROUND(SUM(((largo_cm * ancho_cm * alto_cm) / 1000000) * 168), 3) AS peso_volumetrico_total,
     ROUND(SUM(GREATEST(peso_real_kg, peso_volumetrico_kg)), 2) AS peso_facturable_total,
-    ROUND(SUM((peso_real_kg * 20) + (GREATEST(peso_volumetrico_kg - peso_real_kg, 0) * 18)), 2) AS costo_envio
-  FROM paquetes
-  GROUP BY pedido_id
+    ROUND(SUM(
+      CASE
+        WHEN p2.tipo_envio = 'MARITIMO' THEN ((largo_cm * ancho_cm * alto_cm) / 1000000) * 850
+        ELSE (peso_real_kg * 20) + (GREATEST(((((largo_cm * ancho_cm * alto_cm) / 1000000) * 168) - peso_real_kg), 0) * 18)
+      END
+    ), 2) AS costo_envio
+  FROM paquetes pk
+  JOIN pedidos p2 ON p2.id = pk.pedido_id
+  GROUP BY pk.pedido_id
 ) calc ON calc.pedido_id = p.id
 SET
   p.peso_real_total = calc.peso_real_total,

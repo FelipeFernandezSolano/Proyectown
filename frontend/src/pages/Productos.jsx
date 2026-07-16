@@ -7,6 +7,7 @@ import { requerido, mayorQueCero } from "../utils/validaciones";
 import { useAuth } from "../context/AuthContext";
 import ConfirmDialog from "../components/ConfirmDialog";
 import Icon from "../components/Icon";
+import AutocompleteInput from "../components/AutocompleteInput";
 
 const VACIO = {
   nombre: "", descripcion: "", categoriaId: "", costoUnitario: "", precioVenta: "",
@@ -22,6 +23,7 @@ export default function Productos() {
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [texto, setTexto] = useState("");
+  const [categoriaFiltro, setCategoriaFiltro] = useState("");
   const [modal, setModal] = useState(null);
   const [errores, setErrores] = useState({});
   const [aEliminar, setAEliminar] = useState(null);
@@ -36,15 +38,22 @@ export default function Productos() {
   }, []);
 
   const pesoVol = (m) => {
-    const v = (Number(m.largoCm) * Number(m.anchoCm) * Number(m.altoCm)) / 5000;
+    const v = ((Number(m.largoCm) * Number(m.anchoCm) * Number(m.altoCm)) / 1000000) * 168;
     return isFinite(v) ? v : 0;
   };
 
-  const costoEnvioProducto = (m) => {
+  const volumenM3 = (m) => {
+    const v = (Number(m.largoCm) * Number(m.anchoCm) * Number(m.altoCm)) / 1000000;
+    return isFinite(v) ? v : 0;
+  };
+
+  const costoEnvioAereo = (m) => {
     const real = Number(m.pesoKg) || 0;
     const vol = pesoVol(m);
     return (real * COSTO_KG_REAL) + (Math.max(vol - real, 0) * COSTO_KG_VOL_EXCEDENTE);
   };
+
+  const costoEnvioMaritimo = (m) => volumenM3(m) * 850;
 
   const proveedorHref = (url) => {
     if (!url) return "";
@@ -105,6 +114,17 @@ export default function Productos() {
     cargar();
   };
 
+  const textoFiltro = texto.trim().toLowerCase();
+  const productosFiltrados = productos.filter((p) => {
+    const coincideTexto = !textoFiltro || [
+      p.nombre,
+      p.descripcion,
+      p.categoria?.nombre,
+    ].some((valor) => String(valor || "").toLowerCase().includes(textoFiltro));
+    const coincideCategoria = !categoriaFiltro || String(p.categoria?.id || "") === String(categoriaFiltro);
+    return coincideTexto && coincideCategoria;
+  });
+
   return (
     <div className="contenido">
       <h2>Productos</h2>
@@ -114,18 +134,24 @@ export default function Productos() {
           : "Catalogo de productos con peso y dimensiones."}
       </p>
       <p className="texto-tenue nota-tarifa">
-        Tarifa de envio: $20 por kg real. Si el peso volumetrico supera al real, solo la diferencia se cobra a $18 por kg.
+        Aereo: peso volumetrico = m3 x 168; kg real a $20 y excedente volumetrico a $18. Maritimo: m3 x $850.
       </p>
 
-      <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
-        <input
-          placeholder="Buscar producto..."
-          value={texto}
-          onChange={(e) => setTexto(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && cargar()}
-          style={{ flex: 1, minWidth: 240, padding: "10px 12px", borderRadius: 8, border: "1px solid var(--pch-borde)" }}
-        />
-        <button className="btn btn-secundario" onClick={cargar}><Icon name="search" size={15} />Buscar</button>
+      <div className="toolbar-catalogo">
+        <div className="buscador-tabla buscador-catalogo">
+          <Icon name="search" size={15} />
+          <AutocompleteInput
+            placeholder="Buscar producto o descripcion"
+            value={texto}
+            onChange={setTexto}
+            options={productos.flatMap((p) => [p.nombre, p.descripcion].filter(Boolean))}
+          />
+        </div>
+        <select className="select-catalogo" value={categoriaFiltro} onChange={(e) => setCategoriaFiltro(e.target.value)}>
+          <option value="">Todas las categorias</option>
+          {categorias.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+        </select>
+        <button className="btn btn-secundario" onClick={cargar}><Icon name="search" size={15} />Actualizar</button>
         {esAdmin && (
           <button className="btn btn-azul" onClick={() => abrir({ ...VACIO })}>
             <Icon name="plus" size={15} />Nuevo producto
@@ -139,15 +165,15 @@ export default function Productos() {
             <tr>
               <th>Producto</th><th>Categoria</th>
               {esAdmin && <><th>Costo</th><th>Venta</th></>}
-              <th>Peso</th><th>Volum.</th><th>Dim (LxAxA)</th><th>Envio est.</th><th>Proveedor</th>
+              <th>Peso</th><th>Volum. aereo</th><th>Dim (LxAxA)</th><th>Aereo est.</th><th>Maritimo est.</th><th>Proveedor</th>
               {esAdmin && <th></th>}
             </tr>
           </thead>
           <tbody>
-            {productos.length === 0 && (
-              <tr><td colSpan={esAdmin ? 10 : 7}><div className="estado-vacio">No hay productos.</div></td></tr>
+            {productosFiltrados.length === 0 && (
+              <tr><td colSpan={esAdmin ? 11 : 8}><div className="estado-vacio">No hay productos.</div></td></tr>
             )}
-            {productos.map((p) => (
+            {productosFiltrados.map((p) => (
               <tr key={p.id} style={{ opacity: p.activo ? 1 : 0.5 }}>
                 <td><b>{p.nombre}</b>{!p.activo && <span className="badge badge-gris" style={{ marginLeft: 6 }}>inactivo</span>}</td>
                 <td>{p.categoria?.nombre || "-"}</td>
@@ -155,7 +181,8 @@ export default function Productos() {
                 <td>{formatoNumero(p.pesoKg)} kg</td>
                 <td>{formatoNumero(pesoVol(p))} kg</td>
                 <td className="texto-tenue">{formatoNumero(p.largoCm, 0)}x{formatoNumero(p.anchoCm, 0)}x{formatoNumero(p.altoCm, 0)} cm</td>
-                <td><b>{formatoUSD(costoEnvioProducto(p))}</b></td>
+                <td><b>{formatoUSD(costoEnvioAereo(p))}</b></td>
+                <td><b>{formatoUSD(costoEnvioMaritimo(p))}</b></td>
                 <td>
                   {p.linkProveedor ? (
                     <a className="proveedor-link" href={proveedorHref(p.linkProveedor)} target="_blank" rel="noreferrer">
@@ -216,8 +243,9 @@ export default function Productos() {
                 <input value={modal.linkProveedor || ""} onChange={(e) => setModal({ ...modal, linkProveedor: e.target.value })} /></div>
             </div>
             <p className="texto-tenue">
-              Peso volumetrico estimado: <b>{formatoNumero(pesoVol(modal))} kg</b> (LxAxA / 5000).
-              {" "}Envio estimado: <b>{formatoUSD(costoEnvioProducto(modal))}</b>.
+              Peso volumetrico aereo estimado: <b>{formatoNumero(pesoVol(modal))} kg</b> ((LxAxA / 1000000) x 168).
+              {" "}Aereo estimado: <b>{formatoUSD(costoEnvioAereo(modal))}</b>.
+              {" "}Maritimo estimado: <b>{formatoUSD(costoEnvioMaritimo(modal))}</b>.
             </p>
             {error && <p className="mensaje-info mensaje-error">{error}</p>}
             <div className="modal-acciones">

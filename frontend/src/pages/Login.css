@@ -62,12 +62,3 @@
   color: var(--pch-rojo);
   font-size: 13px;
 }
-
-.login-demo {
-  margin: 16px 0 0;
-  padding: 10px;
-  border-radius: 10px;
-  background: var(--pch-gris-claro);
-  color: var(--pch-gris-medio);
-  font-size: 12.5px;
-}
