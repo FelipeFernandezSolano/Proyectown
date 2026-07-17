@@ -34,6 +34,9 @@ public class Pedido {
     @Column(length = 400)
     private String descripcion;
 
+    @Column(name = "direccion_entrega", length = 500)
+    private String direccionEntrega;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo_envio", nullable = false, length = 20)
     private TipoEnvio tipoEnvio = TipoEnvio.AEREO;
@@ -56,6 +59,9 @@ public class Pedido {
 
     @Column(name = "total_venta", precision = 12, scale = 2)
     private BigDecimal totalVenta = BigDecimal.ZERO;
+
+    @Column(name = "monto_pagado", precision = 12, scale = 2)
+    private BigDecimal montoPagado = BigDecimal.ZERO;
 
     @Column(precision = 12, scale = 2)
     private BigDecimal utilidad = BigDecimal.ZERO;

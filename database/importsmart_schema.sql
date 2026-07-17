@@ -9,6 +9,7 @@ CREATE TABLE usuarios (
   nombre        VARCHAR(100)  NOT NULL,
   email         VARCHAR(150)  NOT NULL UNIQUE,
   password_hash VARCHAR(255)  NOT NULL,
+  cliente_id    BIGINT,
   rol           VARCHAR(20)   NOT NULL,
   activo        TINYINT(1)    NOT NULL DEFAULT 1,
   creado_en     DATETIME      DEFAULT CURRENT_TIMESTAMP
@@ -26,6 +27,9 @@ CREATE TABLE clientes (
   creado_en      DATETIME DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_clientes_nombre (nombre)
 ) ENGINE=InnoDB;
+
+ALTER TABLE usuarios
+  ADD CONSTRAINT fk_usuario_cliente FOREIGN KEY (cliente_id) REFERENCES clientes(id);
 
 CREATE TABLE categorias (
   id     BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -69,6 +73,7 @@ CREATE TABLE pedidos (
   codigo                 VARCHAR(30) NOT NULL UNIQUE,
   cliente_id             BIGINT,
   descripcion            VARCHAR(400),
+  direccion_entrega      VARCHAR(500),
   tipo_envio             VARCHAR(20) NOT NULL DEFAULT 'AEREO',
   estado_pedido_id       BIGINT,
   tipo_cambio            DECIMAL(12,4),               -- CRC por USD (snapshot)
@@ -76,6 +81,7 @@ CREATE TABLE pedidos (
   costo_envio            DECIMAL(12,2) NOT NULL DEFAULT 0,
   gastos_adicionales     DECIMAL(12,2) NOT NULL DEFAULT 0,
   total_venta            DECIMAL(12,2) NOT NULL DEFAULT 0,
+  monto_pagado           DECIMAL(12,2) NOT NULL DEFAULT 0,
   utilidad               DECIMAL(12,2) NOT NULL DEFAULT 0,
   margen_pct             DECIMAL(6,2)  NOT NULL DEFAULT 0,
   rentabilidad           VARCHAR(20)   NOT NULL DEFAULT 'NO_RENTABLE',
@@ -126,6 +132,7 @@ CREATE TABLE historial_estados (
 -- ---------------------------------------------------------------------------
 --   admin@importsmart.com    / admin123      (rol ADMINISTRADOR)
 --   operador@importsmart.com / operador123   (rol OPERADOR)
+--   cliente@importsmart.com  / cliente123    (rol CLIENTE, cliente CL0001)
 -- ---------------------------------------------------------------------------
 INSERT INTO usuarios (nombre, email, password_hash, rol, activo) VALUES
 ('Administrador', 'admin@importsmart.com', '$2b$10$6vctLYktZ.aewJvhcbKb7OD4Bamg.rVzqfJznqbTxkzks2i76bZI6', 'ADMINISTRADOR', 1),
@@ -165,6 +172,9 @@ INSERT INTO clientes (numero_cliente, nombre, contacto, email, telefono, pais, d
 ('CL0010', 'Comercial Delta', 'Gabriela Leon', 'gabriela@comercialdelta.com', '2222-1090', 'Panama', 'Ciudad de Panama, Costa del Este'),
 ('CL0011', 'MegaHogar Import', 'Andres Salas', 'andres@megahogar.cr', '2434-2200', 'Costa Rica', 'Grecia, Alajuela, centro'),
 ('CL0012', 'Suplidora Continental', 'Monica Fuentes', 'monica@continental.ni', '505-2278-4400', 'Nicaragua', 'Managua, Carretera Masaya km 5');
+
+INSERT INTO usuarios (nombre, email, password_hash, cliente_id, rol, activo) VALUES
+('TecnoAndes S.A.', 'cliente@importsmart.com', '$2b$12$J93crfjHCmM89F6wlbczKeJMQDrp3fwXyOiiNHabyjo754aBg94fC', 1, 'CLIENTE', 1);
 
 INSERT INTO productos (categoria_id, nombre, descripcion, costo_unitario, precio_venta, peso_kg, largo_cm, ancho_cm, alto_cm, link_proveedor) VALUES
 (1, 'Audifonos Bluetooth ANC X200', 'Audifonos inalambricos con cancelacion de ruido', 18.0, 39.0, 0.3, 20, 18, 8, 'https://proveedor.example.com/x200'),
@@ -534,6 +544,17 @@ SET
     WHEN p.total_venta > 0 AND ROUND(((p.total_venta - p.subtotal_productos - calc.costo_envio - p.gastos_adicionales) / p.total_venta) * 100, 2) >= 25 THEN 'RENTABLE'
     WHEN p.total_venta > 0 AND ROUND(((p.total_venta - p.subtotal_productos - calc.costo_envio - p.gastos_adicionales) / p.total_venta) * 100, 2) >= 12 THEN 'POCO_RENTABLE'
     ELSE 'NO_RENTABLE'
+  END;
+
+UPDATE pedidos p
+JOIN clientes c ON c.id = p.cliente_id
+SET
+  p.direccion_entrega = COALESCE(p.direccion_entrega, c.direccion),
+  p.monto_pagado = CASE
+    WHEN p.estado_pedido_id >= 7 THEN p.total_venta
+    WHEN p.estado_pedido_id >= 5 THEN ROUND(p.total_venta * 0.65, 2)
+    WHEN p.estado_pedido_id >= 2 THEN ROUND(p.total_venta * 0.35, 2)
+    ELSE 0
   END;
 
 -- Total esperado despues de ejecutar el script completo desde cero: 300 pedidos.

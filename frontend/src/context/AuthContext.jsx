@@ -12,7 +12,7 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     const data = await loginApi(email, password);
     localStorage.setItem("is_token", data.token);
-    const usuarioInfo = { nombre: data.nombre, rol: data.rol };
+    const usuarioInfo = { nombre: data.nombre, rol: data.rol, clienteId: data.clienteId };
     localStorage.setItem("is_usuario", JSON.stringify(usuarioInfo));
     setUsuario(usuarioInfo);
     return usuarioInfo;

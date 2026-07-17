@@ -6,10 +6,10 @@ import "./Navbar.css";
 
 const enlaces = [
   { to: "/", label: "Dashboard", exact: true, icono: "dashboard", soloAdmin: true },
-  { to: "/pedidos", label: "Pedidos", icono: "box" },
+  { to: "/pedidos", label: "Pedidos", labelCliente: "Mis pedidos", icono: "box" },
   { to: "/nuevo-pedido", label: "Nuevo pedido", icono: "plus", soloAdmin: true },
-  { to: "/simulador", label: "Simulador", icono: "calculator" },
-  { to: "/clientes", label: "Clientes", icono: "users" },
+  { to: "/simulador", label: "Simulador", labelCliente: "Cotizador", icono: "calculator" },
+  { to: "/clientes", label: "Clientes", icono: "users", soloAdmin: true },
   { to: "/productos", label: "Productos", icono: "tag" },
 ];
 
@@ -17,6 +17,7 @@ export default function Navbar() {
   const { usuario, logout } = useAuth();
   const navigate = useNavigate();
   const esAdmin = usuario?.rol === "ADMINISTRADOR";
+  const esCliente = usuario?.rol === "CLIENTE";
 
   const salir = () => {
     logout();
@@ -41,7 +42,7 @@ export default function Navbar() {
             className={({ isActive }) => "pch-navlink" + (isActive ? " activo" : "")}
           >
             <Icon name={enlace.icono} size={16} />
-            {enlace.label}
+            {esCliente && enlace.labelCliente ? enlace.labelCliente : enlace.label}
           </NavLink>
         ))}
       </nav>

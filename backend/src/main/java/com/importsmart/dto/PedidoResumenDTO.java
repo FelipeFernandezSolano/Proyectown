@@ -13,11 +13,14 @@ public class PedidoResumenDTO {
     private Long clienteId;
     private String clienteNombre;
     private String descripcion;
+    private String direccionEntrega;
     private String tipoEnvio;
     private String estado;
     private String estadoColor;
     private Integer estadoOrden;
     private BigDecimal totalVenta;
+    private BigDecimal montoPagado;
+    private BigDecimal saldoPendiente;
     private BigDecimal utilidad;
     private BigDecimal margenPct;
     private String rentabilidad;

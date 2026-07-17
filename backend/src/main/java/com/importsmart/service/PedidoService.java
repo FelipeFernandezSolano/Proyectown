@@ -64,6 +64,12 @@ public class PedidoService {
         return toDetalle(buscar(id));
     }
 
+    public PedidoDetalleDTO obtenerDetalleParaCliente(Long id, Long clienteId) {
+        Pedido pedido = pedidoRepository.findByIdAndClienteId(id, clienteId)
+                .orElseThrow(() -> new IllegalArgumentException("Pedido no encontrado para este cliente: " + id));
+        return toDetalle(pedido);
+    }
+
     private Pedido buscar(Long id) {
         return pedidoRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Pedido no encontrado: " + id));
@@ -120,8 +126,14 @@ public class PedidoService {
             p.setCliente(cliente);
         }
         p.setDescripcion(req.getDescripcion());
+        String direccionEntrega = req.getDireccionEntrega();
+        if ((direccionEntrega == null || direccionEntrega.isBlank()) && p.getCliente() != null) {
+            direccionEntrega = p.getCliente().getDireccion();
+        }
+        p.setDireccionEntrega(direccionEntrega);
         p.setTipoEnvio(parseTipo(req.getTipoEnvio()));
         p.setGastosAdicionales(nz(req.getGastosAdicionales()));
+        p.setMontoPagado(nz(req.getMontoPagado()));
 
         // ---- Items (productos del pedido) ----
         p.getItems().clear();
@@ -221,6 +233,7 @@ public class PedidoService {
             d.setClienteNombre(p.getCliente().getNombre());
         }
         d.setDescripcion(p.getDescripcion());
+        d.setDireccionEntrega(p.getDireccionEntrega());
         d.setTipoEnvio(p.getTipoEnvio() != null ? p.getTipoEnvio().name() : null);
         if (p.getEstadoPedido() != null) {
             d.setEstado(p.getEstadoPedido().getNombre());
@@ -228,6 +241,8 @@ public class PedidoService {
             d.setEstadoOrden(p.getEstadoPedido().getOrden());
         }
         d.setTotalVenta(p.getTotalVenta());
+        d.setMontoPagado(nz(p.getMontoPagado()));
+        d.setSaldoPendiente(saldoPendiente(p));
         d.setUtilidad(p.getUtilidad());
         d.setMargenPct(p.getMargenPct());
         d.setRentabilidad(p.getRentabilidad() != null ? p.getRentabilidad().name() : null);
@@ -248,6 +263,7 @@ public class PedidoService {
             d.setClienteContacto(p.getCliente().getContacto());
         }
         d.setDescripcion(p.getDescripcion());
+        d.setDireccionEntrega(p.getDireccionEntrega());
         d.setTipoEnvio(p.getTipoEnvio() != null ? p.getTipoEnvio().name() : null);
         if (p.getEstadoPedido() != null) {
             d.setEstado(p.getEstadoPedido().getNombre());
@@ -258,6 +274,8 @@ public class PedidoService {
         d.setCostoEnvio(p.getCostoEnvio());
         d.setGastosAdicionales(p.getGastosAdicionales());
         d.setTotalVenta(p.getTotalVenta());
+        d.setMontoPagado(nz(p.getMontoPagado()));
+        d.setSaldoPendiente(saldoPendiente(p));
         d.setUtilidad(p.getUtilidad());
         d.setMargenPct(p.getMargenPct());
         d.setRentabilidad(p.getRentabilidad() != null ? p.getRentabilidad().name() : null);
@@ -335,5 +353,10 @@ public class PedidoService {
 
     private BigDecimal nz(BigDecimal v) {
         return v == null ? BigDecimal.ZERO : v;
+    }
+
+    private BigDecimal saldoPendiente(Pedido p) {
+        BigDecimal saldo = nz(p.getTotalVenta()).subtract(nz(p.getMontoPagado()));
+        return saldo.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : saldo;
     }
 }

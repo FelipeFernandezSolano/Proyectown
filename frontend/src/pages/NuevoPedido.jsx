@@ -35,7 +35,7 @@ export default function NuevoPedido() {
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
 
-  const [form, setForm] = useState({ clienteId: "", tipoEnvio: "AEREO", descripcion: "", gastosAdicionales: 0 });
+  const [form, setForm] = useState({ clienteId: "", tipoEnvio: "AEREO", descripcion: "", direccionEntrega: "", gastosAdicionales: 0 });
   const [items, setItems] = useState([]);
   const [paquetes, setPaquetes] = useState([{ descripcion: "Caja 1", largoCm: 0, anchoCm: 0, altoCm: 0, pesoRealKg: 0 }]);
 
@@ -163,6 +163,7 @@ export default function NuevoPedido() {
   const guardar = async () => {
     setError("");
     if (!form.clienteId) { setError("Selecciona una empresa cliente."); return; }
+    if (!form.direccionEntrega.trim()) { setError("Ingresa la direccion de entrega."); return; }
     const itemsValidos = items.filter((it) => it.productoId);
     if (itemsValidos.length === 0) { setError("Agrega al menos un producto registrado."); return; }
     setGuardando(true);
@@ -171,6 +172,7 @@ export default function NuevoPedido() {
         clienteId: Number(form.clienteId),
         tipoEnvio: form.tipoEnvio,
         descripcion: form.descripcion || items.map((it) => productos.find((p) => p.id === Number(it.productoId))?.nombre).filter(Boolean).join(", "),
+        direccionEntrega: form.direccionEntrega.trim(),
         gastosAdicionales: Number(form.gastosAdicionales) || 0,
         items: itemsValidos.map((it) => ({
           productoId: Number(it.productoId), cantidad: Number(it.cantidad) || 1,
@@ -240,6 +242,12 @@ export default function NuevoPedido() {
                 <input type="number" step="0.01" min="0" value={form.gastosAdicionales} onChange={(e) => setForm({ ...form, gastosAdicionales: e.target.value })} /></div>
               <div className="campo" style={{ gridColumn: "1 / -1" }}><label>Descripcion (opcional)</label>
                 <input value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} placeholder="Se genera con los productos si se deja vacio" /></div>
+              <div className="campo" style={{ gridColumn: "1 / -1" }}><label>Direccion de entrega *</label>
+                <input
+                  value={form.direccionEntrega}
+                  onChange={(e) => setForm({ ...form, direccionEntrega: e.target.value })}
+                  placeholder="Provincia, canton, distrito y senas exactas"
+                /></div>
             </div>
           </div>
 
