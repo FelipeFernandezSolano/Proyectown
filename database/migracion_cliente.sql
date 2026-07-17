@@ -1,5 +1,7 @@
 USE importsmart;
 
+ALTER TABLE usuarios MODIFY COLUMN rol VARCHAR(20) NOT NULL;
+
 SET @sql = (
   SELECT IF(COUNT(*) = 0,
     'ALTER TABLE usuarios ADD COLUMN cliente_id BIGINT NULL',

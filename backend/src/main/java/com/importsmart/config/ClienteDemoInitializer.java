@@ -16,7 +16,10 @@ import com.importsmart.repository.PedidoRepository;
 import com.importsmart.repository.ProductoRepository;
 import com.importsmart.repository.UsuarioRepository;
 import com.importsmart.service.PedidoService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +31,9 @@ import java.util.List;
 @Component
 public class ClienteDemoInitializer implements CommandLineRunner {
 
+    private static final Logger log = LoggerFactory.getLogger(ClienteDemoInitializer.class);
+
+    private final JdbcTemplate jdbcTemplate;
     private final UsuarioRepository usuarioRepository;
     private final ClienteRepository clienteRepository;
     private final PedidoRepository pedidoRepository;
@@ -37,7 +43,8 @@ public class ClienteDemoInitializer implements CommandLineRunner {
     private final PedidoService pedidoService;
     private final PasswordEncoder passwordEncoder;
 
-    public ClienteDemoInitializer(UsuarioRepository usuarioRepository,
+    public ClienteDemoInitializer(JdbcTemplate jdbcTemplate,
+                                  UsuarioRepository usuarioRepository,
                                   ClienteRepository clienteRepository,
                                   PedidoRepository pedidoRepository,
                                   ProductoRepository productoRepository,
@@ -45,6 +52,7 @@ public class ClienteDemoInitializer implements CommandLineRunner {
                                   HistorialEstadoRepository historialEstadoRepository,
                                   PedidoService pedidoService,
                                   PasswordEncoder passwordEncoder) {
+        this.jdbcTemplate = jdbcTemplate;
         this.usuarioRepository = usuarioRepository;
         this.clienteRepository = clienteRepository;
         this.pedidoRepository = pedidoRepository;
@@ -58,9 +66,10 @@ public class ClienteDemoInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        prepararCompatibilidadBaseDatos();
+
         Cliente cliente = clienteRepository.findById(1L)
-                .orElseGet(() -> clienteRepository.findAll().stream().findFirst().orElse(null));
-        if (cliente == null) return;
+                .orElseGet(() -> clienteRepository.findAll().stream().findFirst().orElseGet(this::crearClienteDemo));
 
         Usuario usuario = usuarioRepository.findByEmailIgnoreCase("cliente@importsmart.com")
                 .orElseGet(Usuario::new);
@@ -74,6 +83,31 @@ public class ClienteDemoInitializer implements CommandLineRunner {
 
         asegurarPedidosClienteDemo(cliente);
         normalizarPedidosCliente(cliente);
+    }
+
+    private void prepararCompatibilidadBaseDatos() {
+        ejecutarSqlSeguro("ALTER TABLE usuarios MODIFY COLUMN rol VARCHAR(20) NOT NULL");
+        ejecutarSqlSeguro("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cliente_id BIGINT NULL");
+    }
+
+    private void ejecutarSqlSeguro(String sql) {
+        try {
+            jdbcTemplate.execute(sql);
+        } catch (Exception ex) {
+            log.debug("No se aplico ajuste automatico de base de datos: {}", sql, ex);
+        }
+    }
+
+    private Cliente crearClienteDemo() {
+        Cliente cliente = new Cliente();
+        cliente.setNumeroCliente("CL0001");
+        cliente.setNombre("TecnoAndes S.A.");
+        cliente.setContacto("Cliente demo");
+        cliente.setEmail("cliente@importsmart.com");
+        cliente.setTelefono("506-2222-0000");
+        cliente.setPais("Costa Rica");
+        cliente.setDireccion("San Jose, Costa Rica");
+        return clienteRepository.save(cliente);
     }
 
     private void asegurarPedidosClienteDemo(Cliente cliente) {
