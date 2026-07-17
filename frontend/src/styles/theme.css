@@ -705,6 +705,29 @@ table.tabla-pch tbody tr.fila-clickeable {
   text-decoration: underline;
 }
 
+.proveedor-links {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 220px;
+  max-width: 300px;
+}
+
+.proveedor-link-mini {
+  padding: 5px 8px;
+  border: 1px solid rgba(9, 93, 137, 0.14);
+  border-radius: 999px;
+  background: var(--pch-azul-claro);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.proveedor-link-mini:hover {
+  background: #d8f0f7;
+  text-decoration: none;
+}
+
 .chip-envio {
   display: inline-flex;
   align-items: center;
@@ -1140,6 +1163,83 @@ a.alert-item {
   color: var(--pch-gris-oscuro);
   font-size: 14px;
 }
+
+.currency-select {
+  position: relative;
+  width: 100%;
+}
+
+.currency-select-trigger {
+  width: 100%;
+  min-height: 41px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 11px;
+  border: 1px solid var(--pch-borde);
+  border-radius: var(--pch-radio-chico);
+  background: #fbfdfe;
+  color: var(--pch-gris-oscuro);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.currency-select-trigger svg {
+  transform: rotate(90deg);
+  color: var(--pch-gris-medio);
+}
+
+.currency-select-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: auto;
+  z-index: 130;
+  width: max-content;
+  min-width: 280px;
+  max-width: min(360px, calc(100vw - 40px));
+  max-height: 250px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px;
+  border: 1px solid var(--pch-borde);
+  border-radius: var(--pch-radio-chico);
+  background: var(--pch-blanco);
+  box-shadow: 0 16px 32px rgba(8, 47, 73, 0.14);
+}
+
+.currency-select-menu button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 44px minmax(190px, 1fr);
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  padding: 9px 10px;
+  border-radius: 7px;
+  color: var(--pch-gris-oscuro);
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.currency-select-menu button:hover,
+.currency-select-menu button.activo {
+  background: var(--pch-azul-claro);
+  color: var(--pch-azul-oscuro);
+}
+
+.currency-select-menu button b {
+  color: var(--pch-azul);
+}
+
+.currency-select-menu button span {
+  min-width: 0;
+  white-space: nowrap;
+}
 .tabla-acciones {
   display: flex;
   align-items: center;
@@ -1149,6 +1249,121 @@ a.alert-item {
 .btn-pdf-cliente,
 .btn-pdf-interno {
   min-width: 86px;
+}
+
+.btn-copiar-id {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  margin-left: 8px;
+  padding: 2px 4px;
+  font-size: 14px;
+  line-height: 1;
+  opacity: 0.78;
+  transition: opacity 0.12s ease;
+}
+
+.btn-copiar-id:hover {
+  opacity: 0.45;
+}
+
+.buscador-rastreo {
+  width: min(420px, 100%);
+}
+
+.tracking-box {
+  margin: 14px 0;
+  padding: 14px;
+  border: 1px solid var(--pch-borde);
+  border-radius: var(--pch-radio-chico);
+  background: linear-gradient(135deg, #f7fbfd, #eefbf9);
+}
+
+.tracking-stepper {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.tracking-step {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  text-align: center;
+  color: var(--pch-gris-medio);
+  font-size: 12px;
+}
+
+.tracking-step span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid var(--pch-borde);
+  background: var(--pch-blanco);
+  font-weight: 800;
+}
+
+.tracking-step b {
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.tracking-step.activo {
+  color: var(--pch-azul-oscuro);
+}
+
+.tracking-step.activo span {
+  background: var(--pch-azul);
+  color: var(--pch-blanco);
+  border-color: var(--pch-azul);
+}
+
+.tracking-box p {
+  margin: 12px 0 0;
+  color: var(--pch-gris-medio);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tracking-panel-cliente {
+  margin-bottom: 18px;
+}
+
+.tracking-panel-header {
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.tracking-panel-header h3 {
+  margin: 0 0 4px;
+  color: var(--pch-azul-profundo);
+}
+
+.tracking-panel-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.direccion-entrega {
+  margin: 12px 0 16px;
+}
+
+.direccion-entrega strong {
+  display: block;
+  color: var(--pch-azul-profundo);
+  margin-bottom: 5px;
+}
+
+.direccion-entrega p {
+  margin: 0;
+  color: var(--pch-gris-medio);
 }
 
 /* Mensajes de error de validacion en formularios */

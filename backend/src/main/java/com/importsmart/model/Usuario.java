@@ -27,6 +27,10 @@ public class Usuario {
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "cliente_id")
+    private Cliente cliente;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private RolUsuario rol;
@@ -39,6 +43,7 @@ public class Usuario {
 
     public enum RolUsuario {
         ADMINISTRADOR,
-        OPERADOR
+        OPERADOR,
+        CLIENTE
     }
 }

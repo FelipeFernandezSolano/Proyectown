@@ -40,7 +40,7 @@ function RutasApp() {
       <Route path="/pedidos" element={<ShellPrivado><Pedidos /></ShellPrivado>} />
       <Route path="/nuevo-pedido" element={<ShellPrivado soloAdmin><NuevoPedido /></ShellPrivado>} />
       <Route path="/simulador" element={<ShellPrivado><Simulador /></ShellPrivado>} />
-      <Route path="/clientes" element={<ShellPrivado><Clientes /></ShellPrivado>} />
+      <Route path="/clientes" element={<ShellPrivado soloAdmin><Clientes /></ShellPrivado>} />
       <Route path="/productos" element={<ShellPrivado><Productos /></ShellPrivado>} />
     </Routes>
   );

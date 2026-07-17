@@ -16,6 +16,7 @@ public class PedidoDetalleDTO {
     private String clienteNombre;
     private String clienteContacto;
     private String descripcion;
+    private String direccionEntrega;
     private String tipoEnvio;
     private String estado;
     private String estadoColor;
@@ -25,6 +26,8 @@ public class PedidoDetalleDTO {
     private BigDecimal costoEnvio;
     private BigDecimal gastosAdicionales;
     private BigDecimal totalVenta;
+    private BigDecimal montoPagado;
+    private BigDecimal saldoPendiente;
     private BigDecimal utilidad;
     private BigDecimal margenPct;
     private String rentabilidad;

@@ -11,10 +11,12 @@ import java.util.List;
 public class PedidoRequest {
     private Long clienteId;
     private String descripcion;
+    private String direccionEntrega;
     private String tipoEnvio;       // AEREO | MARITIMO
     private String estadoNombre;    // opcional; si no viene se usa "Cotizado"
     private String nota;            // nota para el historial de estado
     private BigDecimal gastosAdicionales;
+    private BigDecimal montoPagado;
     private List<PedidoItemDTO> items = new ArrayList<>();
     private List<PaqueteDTO> paquetes = new ArrayList<>();
 }

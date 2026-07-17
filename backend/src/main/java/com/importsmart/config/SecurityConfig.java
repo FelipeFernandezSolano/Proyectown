@@ -69,9 +69,11 @@ public class SecurityConfig {
                 // Dashboard (utilidades, costos) y cotizaciones (contienen utilidad)
                 .requestMatchers("/api/dashboard/**").hasRole("ADMINISTRADOR")
                 .requestMatchers(HttpMethod.GET, "/api/cotizaciones/**").hasRole("ADMINISTRADOR")
+                .requestMatchers(HttpMethod.GET, "/api/clientes/**").hasRole("ADMINISTRADOR")
                 // Crear / editar / borrar (el OPERADOR no edita nada)
+                .requestMatchers(HttpMethod.POST, "/api/pedidos/**").hasAnyRole("ADMINISTRADOR", "CLIENTE")
                 .requestMatchers(HttpMethod.POST, "/api/clientes/**", "/api/productos/**",
-                        "/api/pedidos/**", "/api/categorias/**").hasRole("ADMINISTRADOR")
+                        "/api/categorias/**").hasRole("ADMINISTRADOR")
                 .requestMatchers(HttpMethod.PUT, "/api/clientes/**", "/api/productos/**",
                         "/api/pedidos/**").hasRole("ADMINISTRADOR")
                 .requestMatchers(HttpMethod.PATCH, "/api/pedidos/**").hasRole("ADMINISTRADOR")

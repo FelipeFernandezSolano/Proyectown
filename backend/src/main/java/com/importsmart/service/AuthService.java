@@ -34,6 +34,7 @@ public class AuthService {
                 .orElseThrow(() -> new IllegalStateException("Usuario no encontrado tras autenticar"));
 
         String token = jwtService.generateToken(new UserPrincipal(usuario));
-        return new LoginResponse(token, usuario.getNombre(), usuario.getRol().name());
+        Long clienteId = usuario.getCliente() != null ? usuario.getCliente().getId() : null;
+        return new LoginResponse(token, usuario.getNombre(), usuario.getRol().name(), clienteId);
     }
 }

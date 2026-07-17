@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   getPedidos, getPedido, getEstados, cambiarEstadoPedido, eliminarPedido,
@@ -15,17 +15,65 @@ function Semaforo({ valor }) {
   return <span className="semaforo"><span className="punto" style={{ background: r.punto }} />{r.texto}</span>;
 }
 
+const PASOS_TRACKING = ["Cotizado", "Aprobado", "En transito / Aduana", "Entregado"];
+
+function estadoLogistico(estado) {
+  const valor = String(estado || "").toLowerCase();
+  if (valor.includes("entregado")) return "Entregado";
+  if (valor.includes("aduana") || valor.includes("transito")) return "En transito / Aduana";
+  if (valor.includes("aprobado") || valor.includes("comprado") || valor.includes("bodega")) return "Aprobado";
+  return "Cotizado";
+}
+
+function diasFaltantes(pedido) {
+  if (!pedido?.fechaPedido) return null;
+  const base = new Date(pedido.fechaPedido);
+  if (Number.isNaN(base.getTime())) return null;
+  const dias = pedido.tipoEnvio === "MARITIMO" ? 22 : 5;
+  const estimada = new Date(base);
+  estimada.setDate(estimada.getDate() + dias);
+  return Math.max(0, Math.ceil((estimada.getTime() - Date.now()) / 86400000));
+}
+
+function textoTiempoEstimado(pedido) {
+  const faltan = diasFaltantes(pedido);
+  const faltanTexto = faltan === null ? "" : ` (Faltan ${faltan} dias)`;
+  return pedido?.tipoEnvio === "MARITIMO"
+    ? `Tiempo estimado de llegada: 15 a 22 dias calendario${faltanTexto}.`
+    : `Tiempo estimado de llegada: 3 a 5 dias habiles${faltanTexto}.`;
+}
+
+function TrackingStepper({ pedido }) {
+  const activoIndex = PASOS_TRACKING.indexOf(estadoLogistico(pedido?.estado));
+  return (
+    <div className="tracking-box">
+      <div className="tracking-stepper">
+        {PASOS_TRACKING.map((paso, index) => (
+          <div key={paso} className={"tracking-step" + (index <= activoIndex ? " activo" : "")}>
+            <span>{index + 1}</span>
+            <b>{paso}</b>
+          </div>
+        ))}
+      </div>
+      <p>{textoTiempoEstimado(pedido)}</p>
+    </div>
+  );
+}
+
 export default function Pedidos() {
   const { usuario } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const esAdmin = usuario?.rol === "ADMINISTRADOR";
+  const esCliente = usuario?.rol === "CLIENTE";
   const [pedidos, setPedidos] = useState([]);
   const [estados, setEstados] = useState([]);
   const [detalle, setDetalle] = useState(null);
+  const [trackingDetalle, setTrackingDetalle] = useState(null);
   const [nuevoEstado, setNuevoEstado] = useState("");
   const [nota, setNota] = useState("");
   const [aEliminar, setAEliminar] = useState(null);
   const [busqueda, setBusqueda] = useState({ codigo: "", cliente: "", estado: "", envio: "" });
+  const tablaRef = useRef(null);
   const rentabilidadObjetivo = searchParams.get("rentabilidad");
 
   const abrir = async (id) => {
@@ -33,6 +81,11 @@ export default function Pedidos() {
     setDetalle(d);
     setNuevoEstado(d.estado || "");
     setNota("");
+  };
+
+  const abrirTracking = async (id) => {
+    const d = await getPedido(id);
+    setTrackingDetalle(d);
   };
 
   const cargar = async () => {
@@ -80,6 +133,35 @@ export default function Pedidos() {
     cargar();
   };
 
+  const copiarIDAlPortapapeles = async (idPedido) => {
+    try {
+      await navigator.clipboard.writeText(String(idPedido));
+      alert("ID copiado al portapapeles.");
+    } catch (_) {
+      alert("No se pudo copiar el ID al portapapeles.");
+    }
+  };
+
+  const rastrearPorCodigo = async () => {
+    const codigo = busqueda.codigo.trim().toLowerCase();
+    if (!codigo) {
+      alert("Ingresa el ID de tracking del pedido.");
+      return;
+    }
+    const pedido = pedidos.find((p) => String(p.codigo || "").toLowerCase() === codigo);
+    if (!pedido) {
+      alert("No se encontro un pedido con ese ID de tracking.");
+      return;
+    }
+    await abrirTracking(pedido.id);
+  };
+
+  const verPedidosAnteriores = () => {
+    setTrackingDetalle(null);
+    setFiltro("codigo", "");
+    window.setTimeout(() => tablaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  };
+
   const rentables = pedidos.filter((p) => p.rentabilidad === "RENTABLE").length;
   const pocoRentables = pedidos.filter((p) => p.rentabilidad === "POCO_RENTABLE").length;
   const noRentables = pedidos.filter((p) => p.rentabilidad === "NO_RENTABLE").length;
@@ -122,9 +204,9 @@ export default function Pedidos() {
       <div className="page-header">
         <div>
           <span className="page-kicker"><Icon name="box" size={13} /> Operacion logistica</span>
-          <h2>Pedidos de importacion</h2>
+          <h2>{esCliente ? "Mis pedidos y rastreo" : "Pedidos de importacion"}</h2>
           <p className="subtitulo-pagina">
-            {esAdmin ? "Control comercial, utilidad, rentabilidad y estado de cada pedido." : "Seguimiento logistico y estado de cada pedido (solo lectura)."}
+            {esAdmin ? "Control comercial, utilidad, rentabilidad y estado de cada pedido." : "Seguimiento logistico, pagos y estado de tus importaciones."}
           </p>
         </div>
         <div className="page-actions">
@@ -153,63 +235,110 @@ export default function Pedidos() {
           <div className="filtros-pedidos">
             <div className="buscador-tabla">
               <Icon name="search" size={15} />
-              <AutocompleteInput
-                value={busqueda.codigo}
-                onChange={(valor) => setFiltro("codigo", valor)}
-                options={opcionesCodigo}
-                placeholder="Codigo"
-              />
+              <AutocompleteInput value={busqueda.codigo} onChange={(valor) => setFiltro("codigo", valor)} options={opcionesCodigo} placeholder="Codigo" />
             </div>
             <div className="buscador-tabla">
               <Icon name="users" size={15} />
-              <AutocompleteInput
-                value={busqueda.cliente}
-                onChange={(valor) => setFiltro("cliente", valor)}
-                options={opcionesCliente}
-                placeholder="Cliente"
-              />
+              <AutocompleteInput value={busqueda.cliente} onChange={(valor) => setFiltro("cliente", valor)} options={opcionesCliente} placeholder="Cliente" />
             </div>
             <div className="buscador-tabla">
               <Icon name="clock" size={15} />
-              <AutocompleteInput
-                value={busqueda.estado}
-                onChange={(valor) => setFiltro("estado", valor)}
-                options={opcionesEstado}
-                placeholder="Estado"
-                showAllOnFocus
-              />
+              <AutocompleteInput value={busqueda.estado} onChange={(valor) => setFiltro("estado", valor)} options={opcionesEstado} placeholder="Estado" showAllOnFocus />
             </div>
             <div className="buscador-tabla">
               <Icon name="ship" size={15} />
-              <AutocompleteInput
-                value={busqueda.envio}
-                onChange={(valor) => setFiltro("envio", valor)}
-                options={opcionesEnvio}
-                placeholder="Envio"
-                showAllOnFocus
-              />
+              <AutocompleteInput value={busqueda.envio} onChange={(valor) => setFiltro("envio", valor)} options={opcionesEnvio} placeholder="Envio" showAllOnFocus />
             </div>
           </div>
         </div>
       )}
 
-      <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+      {esCliente && (
+        <div className="toolbar-pedidos">
+          <div className="buscador-tabla buscador-rastreo">
+            <Icon name="search" size={15} />
+            <AutocompleteInput
+              value={busqueda.codigo}
+              onChange={(valor) => setFiltro("codigo", valor)}
+              options={opcionesCodigo}
+              placeholder="Buscar por ID de pedido"
+            />
+          </div>
+          <button className="btn btn-azul" type="button" onClick={rastrearPorCodigo}>
+            <Icon name="timeline" size={15} />
+            Rastrear
+          </button>
+        </div>
+      )}
+
+      {esCliente && trackingDetalle && (
+        <div className="card tracking-panel-cliente">
+          <div className="page-header tracking-panel-header">
+            <div>
+              <span className="page-kicker"><Icon name="timeline" size={13} /> Tracking de pedido</span>
+              <h3>{trackingDetalle.codigo}</h3>
+              <p className="subtitulo-pagina">{textoTiempoEstimado(trackingDetalle)}</p>
+            </div>
+            <div className="tracking-panel-actions">
+              <span className="badge badge-azul">{trackingDetalle.estado}</span>
+              <button className="btn btn-secundario" type="button" onClick={verPedidosAnteriores}>
+                <Icon name="box" size={15} />
+                Ver pedidos anteriores
+              </button>
+            </div>
+          </div>
+          <TrackingStepper pedido={trackingDetalle} />
+          <div className="metric-strip" style={{ marginTop: 14 }}>
+            <div className="metric-box"><span>Total pedido</span><b>{formatoUSD(trackingDetalle.totalVenta)}</b></div>
+            <div className="metric-box"><span>Monto pagado</span><b>{formatoUSD(trackingDetalle.montoPagado)}</b></div>
+            <div className="metric-box"><span>Saldo</span><b className={Number(trackingDetalle.saldoPendiente) > 0 ? "num-negativo" : "num-positivo"}>{Number(trackingDetalle.saldoPendiente) > 0 ? `Monto adeudado: ${formatoUSD(trackingDetalle.saldoPendiente)}` : "Pagado"}</b></div>
+            <div className="metric-box"><span>Fecha pedido</span><b>{formatoFecha(trackingDetalle.fechaPedido)}</b></div>
+          </div>
+          <div className="surface-card direccion-entrega">
+            <strong>Direccion de entrega</strong>
+            <p>{trackingDetalle.direccionEntrega || "Sin direccion de entrega registrada."}</p>
+          </div>
+        </div>
+      )}
+
+      <div className="card" ref={tablaRef} style={{ padding: 0, overflow: "hidden" }}>
         <table className="tabla-pch">
           <thead>
             <tr>
-              <th>Codigo</th><th>Cliente</th><th>Envio</th><th>Estado</th>
+              <th>Codigo</th>
+              {esAdmin && <th>Cliente</th>}
+              <th>Envio</th><th>Estado</th>
               {esAdmin && <><th>Venta</th><th>Utilidad</th><th>Rentabilidad</th></>}
+              {!esAdmin && <><th>Total</th><th>Pagado</th><th>Saldo</th></>}
               <th>Fecha</th>{esAdmin && <th></th>}
             </tr>
           </thead>
           <tbody>
             {pedidosFiltrados.length === 0 && (
-              <tr><td colSpan={esAdmin ? 9 : 5}><div className="estado-vacio">No hay pedidos para este filtro.</div></td></tr>
+              <tr><td colSpan={esAdmin ? 9 : 7}><div className="estado-vacio">No hay pedidos para este filtro.</div></td></tr>
             )}
             {pedidosFiltrados.map((p) => (
-              <tr key={p.id} className="fila-clickeable" onDoubleClick={() => abrir(p.id)} title="Doble clic para ver el detalle">
-                <td><b>{p.codigo}</b></td>
-                <td>{p.clienteNombre || "-"}</td>
+              <tr
+                key={p.id}
+                className="fila-clickeable"
+                onDoubleClick={() => (esAdmin ? abrir(p.id) : abrirTracking(p.id))}
+                title={esAdmin ? "Doble clic para ver el detalle" : "Doble clic para rastrear"}
+              >
+                <td>
+                  <b>{p.codigo}</b>
+                  <button
+                    type="button"
+                    className="btn-copiar-id"
+                    title="Copiar ID de seguimiento"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      copiarIDAlPortapapeles(p.codigo);
+                    }}
+                  >
+                    {"\uD83D\uDCCB"}
+                  </button>
+                </td>
+                {esAdmin && <td>{p.clienteNombre || "-"}</td>}
                 <td><span className="chip-envio"><Icon name={p.tipoEnvio === "MARITIMO" ? "ship" : "plane"} size={13} />{p.tipoEnvio}</span></td>
                 <td><span className="badge badge-azul" style={{ background: `${p.estadoColor || "#0c6291"}22`, color: p.estadoColor || "#0c6291" }}>{p.estado}</span></td>
                 {esAdmin && (
@@ -217,6 +346,13 @@ export default function Pedidos() {
                     <td>{formatoUSD(p.totalVenta)}</td>
                     <td className={Number(p.utilidad) >= 0 ? "num-positivo" : "num-negativo"}>{formatoUSD(p.utilidad)}</td>
                     <td><Semaforo valor={p.rentabilidad} /></td>
+                  </>
+                )}
+                {!esAdmin && (
+                  <>
+                    <td><b>{formatoUSD(p.totalVenta)}</b></td>
+                    <td>{formatoUSD(p.montoPagado)}</td>
+                    <td className={Number(p.saldoPendiente) > 0 ? "num-negativo" : "num-positivo"}>{Number(p.saldoPendiente) > 0 ? formatoUSD(p.saldoPendiente) : "Pagado"}</td>
                   </>
                 )}
                 <td className="texto-tenue">{formatoFecha(p.fechaPedido)}</td>
@@ -237,18 +373,27 @@ export default function Pedidos() {
 
       {detalle && (
         <div className="modal-fondo" onClick={() => setDetalle(null)}>
-          <div className="modal-caja modal-ancha" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 780 }}>
+          <div className="modal-caja modal-ancha" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 820 }}>
             <h3>{detalle.codigo} - {detalle.clienteNombre}</h3>
             <p className="texto-tenue">
               <span className="chip-envio"><Icon name={detalle.tipoEnvio === "MARITIMO" ? "ship" : "plane"} size={13} />{detalle.tipoEnvio}</span>
-              {"  "}~{detalle.diasEstimados} dias · Estado actual: <b>{detalle.estado}</b>
+              {"  "}~{detalle.diasEstimados} dias - Estado actual: <b>{detalle.estado}</b>
             </p>
+
+            <TrackingStepper pedido={detalle} />
 
             <div className="metric-strip" style={{ margin: "14px 0" }}>
               <div className="metric-box"><span>Estado</span><b>{detalle.estado}</b></div>
               <div className="metric-box"><span>Peso facturable</span><b>{formatoNumero(detalle.pesoFacturableTotal)} kg</b></div>
-              {esAdmin && <div className="metric-box"><span>Total venta</span><b>{formatoUSD(detalle.totalVenta)}</b></div>}
+              <div className="metric-box"><span>Total pedido</span><b>{formatoUSD(detalle.totalVenta)}</b></div>
+              <div className="metric-box"><span>Monto pagado</span><b>{formatoUSD(detalle.montoPagado)}</b></div>
+              <div className="metric-box"><span>Saldo pendiente</span><b className={Number(detalle.saldoPendiente) > 0 ? "num-negativo" : "num-positivo"}>{formatoUSD(detalle.saldoPendiente)}</b></div>
               {esAdmin && <div className="metric-box"><span>Utilidad</span><b className={Number(detalle.utilidad) >= 0 ? "num-positivo" : "num-negativo"}>{formatoUSD(detalle.utilidad)}</b></div>}
+            </div>
+
+            <div className="surface-card direccion-entrega">
+              <strong>Direccion de entrega</strong>
+              <p>{detalle.direccionEntrega || "Sin direccion de entrega registrada."}</p>
             </div>
 
             <h4 className="modal-section-title"><Icon name="tag" size={15} />Productos</h4>

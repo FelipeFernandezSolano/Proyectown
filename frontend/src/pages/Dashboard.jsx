@@ -9,7 +9,52 @@ import KpiCard from "../components/KpiCard";
 import Icon from "../components/Icon";
 
 const COLORS = ["#12a37a", "#f59e0b", "#dc2626"];
-const MONEDAS = ["USD", "CRC", "EUR", "MXN", "COP", "CNY", "JPY", "GBP"];
+const MONEDAS = [
+  { codigo: "USD", nombre: "Dolar estadounidense (USD)" },
+  { codigo: "CRC", nombre: "Colon costarricense (CRC)" },
+  { codigo: "EUR", nombre: "Euro (EUR)" },
+  { codigo: "CNY", nombre: "Yuan chino (CNY)" },
+  { codigo: "MXN", nombre: "Peso mexicano (MXN)" },
+  { codigo: "COP", nombre: "Peso colombiano (COP)" },
+  { codigo: "JPY", nombre: "Yen japones (JPY)" },
+  { codigo: "GBP", nombre: "Libra esterlina (GBP)" },
+  { codigo: "CAD", nombre: "Dolar canadiense (CAD)" },
+  { codigo: "BRL", nombre: "Real brasileno (BRL)" },
+];
+
+const nombreMoneda = (codigo) => MONEDAS.find((m) => m.codigo === codigo)?.nombre || codigo;
+
+function CurrencySelect({ value, onChange }) {
+  const [abierto, setAbierto] = useState(false);
+  const seleccionar = (codigo) => {
+    onChange(codigo);
+    setAbierto(false);
+  };
+
+  return (
+    <div className="currency-select" onBlur={() => window.setTimeout(() => setAbierto(false), 120)}>
+      <button type="button" className="currency-select-trigger" onClick={() => setAbierto((actual) => !actual)}>
+        <span>{value}</span>
+        <Icon name="arrowRight" size={14} />
+      </button>
+      {abierto && (
+        <div className="currency-select-menu">
+          {MONEDAS.map((moneda) => (
+            <button
+              type="button"
+              key={moneda.codigo}
+              className={moneda.codigo === value ? "activo" : ""}
+              onMouseDown={() => seleccionar(moneda.codigo)}
+            >
+              <b>{moneda.codigo}</b>
+              <span>{moneda.nombre}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const formatoFechaCambio = (valor) => {
   const fecha = new Date(valor);
@@ -174,15 +219,11 @@ export default function Dashboard() {
                 </div>
                 <div className="campo">
                   <label>Origen</label>
-                  <select value={conversion.origen} onChange={(e) => setConversion({ ...conversion, origen: e.target.value })}>
-                    {MONEDAS.map((m) => <option key={m}>{m}</option>)}
-                  </select>
+                  <CurrencySelect value={conversion.origen} onChange={(origen) => setConversion({ ...conversion, origen })} />
                 </div>
                 <div className="campo">
                   <label>Destino</label>
-                  <select value={conversion.destino} onChange={(e) => setConversion({ ...conversion, destino: e.target.value })}>
-                    {MONEDAS.map((m) => <option key={m}>{m}</option>)}
-                  </select>
+                  <CurrencySelect value={conversion.destino} onChange={(destino) => setConversion({ ...conversion, destino })} />
                 </div>
                 <button type="button" className="btn btn-primario" onClick={ejecutarConversion}>
                   <Icon name="exchange" size={15} />
@@ -191,9 +232,9 @@ export default function Dashboard() {
               </div>
               {resultadoConversion && (
                 <div className="conversion-result">
-                  <strong>{formatoNumero(resultadoConversion.resultado, 2)} {resultadoConversion.monedaDestino}</strong>
+                  <strong>{formatoNumero(resultadoConversion.resultado, 2)} {nombreMoneda(resultadoConversion.monedaDestino)}</strong>
                   <span>
-                    {formatoNumero(resultadoConversion.monto, 2)} {resultadoConversion.monedaOrigen}
+                    {formatoNumero(resultadoConversion.monto, 2)} {nombreMoneda(resultadoConversion.monedaOrigen)}
                     {" "}con tasa diaria de {resultadoConversion.fuente}.
                   </span>
                 </div>

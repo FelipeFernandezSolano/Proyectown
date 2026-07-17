@@ -60,6 +60,23 @@ export default function Productos() {
     return /^https?:\/\//i.test(url) ? url : `https://${url}`;
   };
 
+  const esLinkProveedorReal = (url) => !!url && !/proveedor\.example\.com/i.test(url);
+
+  const enlacesProveedor = (producto) => {
+    const consulta = encodeURIComponent(producto.nombre || producto.descripcion || "producto importado");
+    const enlaces = [
+      { nombre: "Amazon", url: `https://www.amazon.com/s?k=${consulta}` },
+      { nombre: "Alibaba", url: `https://www.alibaba.com/trade/search?SearchText=${consulta}` },
+      { nombre: "AliExpress", url: `https://www.aliexpress.com/wholesale?SearchText=${consulta}` },
+      { nombre: "eBay", url: `https://www.ebay.com/sch/i.html?_nkw=${consulta}` },
+      { nombre: "MercadoLibre", url: `https://listado.mercadolibre.com/${consulta}` },
+    ];
+    if (esLinkProveedorReal(producto.linkProveedor)) {
+      return [{ nombre: "Proveedor", url: proveedorHref(producto.linkProveedor) }, ...enlaces];
+    }
+    return enlaces;
+  };
+
   const validar = (m) => {
     const e = {};
     if (!requerido(m.nombre)) e.nombre = "El nombre es obligatorio";
@@ -135,6 +152,7 @@ export default function Productos() {
       </p>
       <p className="texto-tenue nota-tarifa">
         Aereo: peso volumetrico = m3 x 168; kg real a $20 y excedente volumetrico a $18. Maritimo: m3 x $850.
+        {" "}En proveedor se abren busquedas reales para comparar productos similares en tiendas externas.
       </p>
 
       <div className="toolbar-catalogo">
@@ -184,11 +202,21 @@ export default function Productos() {
                 <td><b>{formatoUSD(costoEnvioAereo(p))}</b></td>
                 <td><b>{formatoUSD(costoEnvioMaritimo(p))}</b></td>
                 <td>
-                  {p.linkProveedor ? (
-                    <a className="proveedor-link" href={proveedorHref(p.linkProveedor)} target="_blank" rel="noreferrer">
-                      Ver proveedor <Icon name="arrowRight" size={13} />
-                    </a>
-                  ) : "-"}
+                  <div className="proveedor-links" aria-label={`Tiendas para ${p.nombre}`}>
+                    {enlacesProveedor(p).map((link) => (
+                      <a
+                        key={link.nombre}
+                        className="proveedor-link proveedor-link-mini"
+                        href={link.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={`Buscar ${p.nombre} en ${link.nombre}`}
+                      >
+                        {link.nombre}
+                        <Icon name="arrowRight" size={12} />
+                      </a>
+                    ))}
+                  </div>
                 </td>
                 {esAdmin && (
                   <td>

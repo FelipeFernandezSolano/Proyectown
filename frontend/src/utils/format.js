@@ -28,7 +28,9 @@ export const formatoKg = (valor) => `${formatoNumero(valor, 2)} kg`;
 
 export const formatoFecha = (valor) => {
   if (!valor) return "-";
-  const fecha = new Date(valor);
+  const fecha = /^\d{4}-\d{2}-\d{2}$/.test(String(valor))
+    ? new Date(Number(valor.slice(0, 4)), Number(valor.slice(5, 7)) - 1, Number(valor.slice(8, 10)))
+    : new Date(valor);
   if (Number.isNaN(fecha.getTime())) return valor;
   return fecha.toLocaleDateString("es-CR");
 };
