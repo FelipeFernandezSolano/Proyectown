@@ -90,6 +90,7 @@ export default function Pedidos() {
   const [estados, setEstados] = useState([]);
   const [detalle, setDetalle] = useState(null);
   const [trackingDetalle, setTrackingDetalle] = useState(null);
+  const [mostrarRescateFinanciero, setMostrarRescateFinanciero] = useState(false);
   const [nuevoEstado, setNuevoEstado] = useState("");
   const [nota, setNota] = useState("");
   const [aEliminar, setAEliminar] = useState(null);
@@ -100,6 +101,7 @@ export default function Pedidos() {
   const abrir = async (id) => {
     const d = await getPedido(id);
     setDetalle(d);
+    setMostrarRescateFinanciero(false);
     setNuevoEstado(d.estado || "");
     setNota("");
   };
@@ -161,6 +163,15 @@ export default function Pedidos() {
     } catch (_) {
       alert("No se pudo copiar el ID al portapapeles.");
     }
+  };
+
+  const requiereRescateFinanciero = (pedido) => esAdmin && Number(pedido?.utilidad || 0) <= 0;
+
+  const precioVentaRentable = (pedido) => {
+    const subtotal = Number(pedido?.subtotalProductos) || 0;
+    const envio = Number(pedido?.costoEnvio) || 0;
+    const gastos = Number(pedido?.gastosAdicionales) || 0;
+    return (subtotal + envio + gastos) * 1.2;
   };
 
   const rastrearPorCodigo = async () => {
@@ -454,6 +465,24 @@ export default function Pedidos() {
                 <div><span>Total venta</span><b>{formatoUSD(detalle.totalVenta)}</b></div>
                 <div><span>Utilidad ({formatoNumero(detalle.margenPct)}%)</span>
                   <b className={Number(detalle.utilidad) >= 0 ? "num-positivo" : "num-negativo"}>{formatoUSD(detalle.utilidad)}</b></div>
+                {requiereRescateFinanciero(detalle) && (
+                  <div className="rescate-financiero">
+                    <button
+                      type="button"
+                      className="btn btn-rescate"
+                      onClick={() => setMostrarRescateFinanciero((actual) => !actual)}
+                    >
+                      Calcular Precio de Venta Rentable
+                    </button>
+                    {mostrarRescateFinanciero && (
+                      <div className="rescate-financiero-mensaje">
+                        Para cubrir productos, envio y gastos operativos con un margen minimo del 20%, la venta sugerida es de{" "}
+                        <b>{formatoUSD(precioVentaRentable(detalle))}</b>. Se recomienda ajustar el precio final de la orden
+                        antes de aprobarla para evitar perdidas.
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="metric-rentabilidad"><span>Rentabilidad</span><b><Semaforo valor={detalle.rentabilidad} /></b></div>
               </div>
             )}

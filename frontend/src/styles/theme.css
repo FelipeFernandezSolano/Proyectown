@@ -665,6 +665,7 @@ table.tabla-pch tbody tr.fila-clickeable {
 .semaforo {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 7px;
   font-weight: 600;
   font-size: 12.5px;
@@ -674,13 +675,18 @@ table.tabla-pch tbody tr.fila-clickeable {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.72);
   white-space: nowrap;
+  vertical-align: middle;
 }
 .semaforo .punto {
+  display: inline-block;
   width: 10px;
   height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
   align-self: center;
+  margin: 0;
+  padding: 0;
+  line-height: 1;
 }
 .num-positivo { color: var(--pch-verde-oscuro); font-weight: 700; }
 .num-negativo { color: var(--pch-rojo); font-weight: 700; }
@@ -1022,8 +1028,8 @@ a.alert-item {
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.68);
 }
-.fila-total-form div span { display: block; font-size: 12px; color: var(--pch-azul-oscuro); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
-.fila-total-form div b { font-size: 18px; color: var(--pch-gris-oscuro); }
+.fila-total-form div > span { display: block; font-size: 12px; color: var(--pch-azul-oscuro); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+.fila-total-form div > b { font-size: 18px; color: var(--pch-gris-oscuro); }
 .fila-total-form .metric-rentabilidad {
   display: flex;
   align-items: center;
@@ -1031,12 +1037,45 @@ a.alert-item {
   gap: 12px;
   min-width: 240px;
 }
-.fila-total-form .metric-rentabilidad span {
+.fila-total-form .metric-rentabilidad > span {
   margin-bottom: 0;
 }
-.fila-total-form .metric-rentabilidad b {
+.fila-total-form .metric-rentabilidad > b {
   display: inline-flex;
   font-size: 13px;
+}
+.fila-total-form .rescate-financiero {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(245, 158, 11, 0.22);
+  background: #fff8eb;
+}
+.btn-rescate {
+  justify-content: center;
+  width: fit-content;
+  background: #f59e0b;
+  color: #1f2933;
+  border-color: #f59e0b;
+  font-weight: 800;
+}
+.btn-rescate:hover {
+  background: #d97706;
+  border-color: #d97706;
+  color: var(--pch-blanco);
+}
+.rescate-financiero-mensaje {
+  color: #7c3f00;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.rescate-financiero-mensaje b {
+  color: #7c2d12;
+  display: inline;
+  font-size: inherit;
+  line-height: inherit;
 }
 .mini-boton { padding: 6px 10px; font-size: 13px; }
 .btn-inline-form {
