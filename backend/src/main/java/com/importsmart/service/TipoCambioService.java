@@ -48,7 +48,7 @@ public class TipoCambioService {
         if (crc == null) {
             crc = fallbackUsdCrc;
         }
-        return new TipoCambioDTO("USD", crc, tasas.fecha(), tasas.fuente(), tasas.enLinea());
+        return new TipoCambioDTO("USD", crc, tasas.fecha(), tasas.fuente(), tasas.enLinea(), tasas.rates());
     }
 
     /** Fuerza una nueva consulta USD -> CRC y actualiza el cache. */

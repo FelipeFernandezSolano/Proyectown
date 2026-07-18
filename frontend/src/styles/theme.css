@@ -1071,11 +1071,107 @@ a.alert-item {
   font-weight: 600;
   line-height: 1.45;
 }
+.rescate-financiero-mensaje p {
+  margin: 0 0 7px;
+}
 .rescate-financiero-mensaje b {
   color: #7c2d12;
   display: inline;
   font-size: inherit;
   line-height: inherit;
+}
+.rescate-conversor {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(180px, 0.8fr);
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+}
+.rescate-conversor label {
+  display: grid;
+  gap: 5px;
+  color: #7c3f00;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.rescate-conversor select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: 8px;
+  background: var(--pch-blanco);
+  color: var(--pch-azul-profundo);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 10px;
+}
+.rescate-conversion-result {
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  padding: 9px 10px;
+  border: 1px solid rgba(245, 158, 11, 0.22);
+  border-radius: 8px;
+  background: #fff8eb;
+}
+.rescate-conversion-result > span {
+  display: block;
+  color: #936018;
+  font-size: 11.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.rescate-conversion-result > b {
+  color: #7c2d12;
+  font-size: 15px;
+  line-height: 1.2;
+}
+.rescate-equivalencias {
+  display: grid;
+  gap: 7px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(217, 119, 6, 0.28);
+}
+.rescate-equivalencias strong {
+  color: #7c3f00;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.rescate-equivalencias div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0;
+  background: transparent;
+}
+.rescate-equivalencias span {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(255, 248, 235, 0.9);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  color: #7c2d12;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.rescate-equivalencias small {
+  color: #936018;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+@media (max-width: 720px) {
+  .rescate-conversor {
+    grid-template-columns: 1fr;
+  }
 }
 .mini-boton { padding: 6px 10px; font-size: 13px; }
 .btn-inline-form {

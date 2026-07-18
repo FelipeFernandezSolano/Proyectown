@@ -5,24 +5,11 @@ import {
 } from "recharts";
 import { convertirMoneda, getKpis, getProductosMasRentables, getTipoCambio } from "../api/endpoints";
 import { formatoUSD, formatoNumero } from "../utils/format";
+import { MONEDAS, nombreMoneda } from "../utils/monedas";
 import KpiCard from "../components/KpiCard";
 import Icon from "../components/Icon";
 
 const COLORS = ["#12a37a", "#f59e0b", "#dc2626"];
-const MONEDAS = [
-  { codigo: "USD", nombre: "Dolar estadounidense (USD)" },
-  { codigo: "CRC", nombre: "Colon costarricense (CRC)" },
-  { codigo: "EUR", nombre: "Euro (EUR)" },
-  { codigo: "CNY", nombre: "Yuan chino (CNY)" },
-  { codigo: "MXN", nombre: "Peso mexicano (MXN)" },
-  { codigo: "COP", nombre: "Peso colombiano (COP)" },
-  { codigo: "JPY", nombre: "Yen japones (JPY)" },
-  { codigo: "GBP", nombre: "Libra esterlina (GBP)" },
-  { codigo: "CAD", nombre: "Dolar canadiense (CAD)" },
-  { codigo: "BRL", nombre: "Real brasileno (BRL)" },
-];
-
-const nombreMoneda = (codigo) => MONEDAS.find((m) => m.codigo === codigo)?.nombre || codigo;
 
 function CurrencySelect({ value, onChange }) {
   const [abierto, setAbierto] = useState(false);

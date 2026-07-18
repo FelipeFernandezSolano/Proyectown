@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.Map;
 
 /** Resultado del tipo de cambio consultado a la API externa (RF-09). */
 @Data
@@ -16,4 +17,5 @@ public class TipoCambioDTO {
     private String fecha;
     private String fuente;             // URL o "fallback"
     private boolean enLinea;           // true si vino de la API, false si se uso el respaldo
+    private Map<String, BigDecimal> rates; // tasas disponibles para conversiones multimoneda
 }

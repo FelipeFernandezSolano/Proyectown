@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   getPedidos, getPedido, getEstados, cambiarEstadoPedido, eliminarPedido,
-  descargarCotizacionCliente, descargarCotizacionInterna, descargarBlob,
+  descargarCotizacionCliente, descargarCotizacionInterna, descargarBlob, getTipoCambio,
 } from "../api/endpoints";
 import { formatoUSD, formatoNumero, formatoFecha, RENTABILIDAD } from "../utils/format";
+import { MONEDAS, nombreMoneda, simboloMoneda } from "../utils/monedas";
 import { useAuth } from "../context/AuthContext";
 import ConfirmDialog from "../components/ConfirmDialog";
 import Icon from "../components/Icon";
@@ -91,6 +92,8 @@ export default function Pedidos() {
   const [detalle, setDetalle] = useState(null);
   const [trackingDetalle, setTrackingDetalle] = useState(null);
   const [mostrarRescateFinanciero, setMostrarRescateFinanciero] = useState(false);
+  const [tipoCambio, setTipoCambio] = useState(null);
+  const [monedaRescate, setMonedaRescate] = useState("USD");
   const [nuevoEstado, setNuevoEstado] = useState("");
   const [nota, setNota] = useState("");
   const [aEliminar, setAEliminar] = useState(null);
@@ -102,6 +105,7 @@ export default function Pedidos() {
     const d = await getPedido(id);
     setDetalle(d);
     setMostrarRescateFinanciero(false);
+    setMonedaRescate("USD");
     setNuevoEstado(d.estado || "");
     setNota("");
   };
@@ -125,7 +129,10 @@ export default function Pedidos() {
   useEffect(() => {
     const inicializar = async () => {
       await cargar();
-      if (esAdmin) getEstados().then(setEstados).catch(() => setEstados([]));
+      if (esAdmin) {
+        getEstados().then(setEstados).catch(() => setEstados([]));
+        getTipoCambio().then(setTipoCambio).catch(() => setTipoCambio(null));
+      }
     };
     inicializar();
     /* eslint-disable-next-line */
@@ -167,11 +174,40 @@ export default function Pedidos() {
 
   const requiereRescateFinanciero = (pedido) => esAdmin && Number(pedido?.utilidad || 0) <= 0;
 
-  const precioVentaRentable = (pedido) => {
+  const tasaUsdCrc = (pedido) => {
+    const tasa = Number(tipoCambio?.rates?.CRC || tipoCambio?.colonesPorDolar || pedido?.tipoCambio);
+    return Number.isFinite(tasa) && tasa > 0 ? tasa : 0;
+  };
+
+  const precioVentaRentableCrc = (pedido) => {
     const subtotal = Number(pedido?.subtotalProductos) || 0;
     const envio = Number(pedido?.costoEnvio) || 0;
     const gastos = Number(pedido?.gastosAdicionales) || 0;
-    return (subtotal + envio + gastos) * 1.2;
+    return (subtotal + envio + gastos) * tasaUsdCrc(pedido) * 1.2;
+  };
+
+  const convertirDesdeCrc = (montoCrc, codigo) => {
+    if (codigo === "CRC") return montoCrc;
+    const crcPorUsd = tasaUsdCrc(detalle);
+    const tasaDestino = codigo === "USD" ? 1 : Number(tipoCambio?.rates?.[codigo]);
+    if (!Number.isFinite(crcPorUsd) || crcPorUsd <= 0 || !Number.isFinite(tasaDestino) || tasaDestino <= 0) return null;
+    return (montoCrc / crcPorUsd) * tasaDestino;
+  };
+
+  const formatoMoneda = (monto, codigo) => `${simboloMoneda(codigo)}${formatoNumero(monto, 2)} ${codigo}`;
+
+  const monedasDisponiblesRescate = () => {
+    const tasas = tipoCambio?.rates || {};
+    const codigosApi = Object.keys(tasas).filter((codigo) => /^[A-Z]{3}$/.test(codigo));
+    const codigos = Array.from(new Set(["USD", "CRC", ...MONEDAS.map((m) => m.codigo), ...codigosApi]));
+    return codigos
+      .filter((codigo) => codigo === "CRC" || codigo === "USD" || Number(tasas[codigo]) > 0)
+      .sort((a, b) => {
+        const ordenA = MONEDAS.findIndex((m) => m.codigo === a);
+        const ordenB = MONEDAS.findIndex((m) => m.codigo === b);
+        if (ordenA !== -1 || ordenB !== -1) return (ordenA === -1 ? 999 : ordenA) - (ordenB === -1 ? 999 : ordenB);
+        return a.localeCompare(b);
+      });
   };
 
   const rastrearPorCodigo = async () => {
@@ -476,9 +512,37 @@ export default function Pedidos() {
                     </button>
                     {mostrarRescateFinanciero && (
                       <div className="rescate-financiero-mensaje">
-                        Para cubrir productos, envio y gastos operativos con un margen minimo del 20%, la venta sugerida es de{" "}
-                        <b>{formatoUSD(precioVentaRentable(detalle))}</b>. Se recomienda ajustar el precio final de la orden
-                        antes de aprobarla para evitar perdidas.
+                        <p>
+                          Para cubrir costos con un margen del 20%, la venta minima sugerida es de:{" "}
+                          <b>{formatoMoneda(precioVentaRentableCrc(detalle), "CRC")}</b>.
+                        </p>
+                        <p>Se recomienda ajustar el precio final de la orden antes de aprobarla para evitar perdidas.</p>
+                        <div className="rescate-conversor">
+                          <label>
+                            Convertir a otra divisa
+                            <select value={monedaRescate} onChange={(e) => setMonedaRescate(e.target.value)}>
+                              {monedasDisponiblesRescate().map((codigo) => (
+                                <option key={codigo} value={codigo}>{nombreMoneda(codigo)}</option>
+                              ))}
+                            </select>
+                          </label>
+                          <div className="rescate-conversion-result">
+                            {convertirDesdeCrc(precioVentaRentableCrc(detalle), monedaRescate) !== null ? (
+                              <>
+                                <span>Equivalente a</span>
+                                <b>{formatoMoneda(convertirDesdeCrc(precioVentaRentableCrc(detalle), monedaRescate), monedaRescate)}</b>
+                              </>
+                            ) : (
+                              <span>No hay tasa disponible para esta divisa.</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="rescate-equivalencias">
+                          <small>
+                            Tasas actuales de {tipoCambio?.fuente || "la API externa"}.
+                            {tipoCambio?.fecha ? ` Ultima actualizacion: ${tipoCambio.fecha}.` : ""}
+                          </small>
+                        </div>
                       </div>
                     )}
                   </div>
