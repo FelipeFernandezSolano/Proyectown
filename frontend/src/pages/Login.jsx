@@ -9,20 +9,8 @@ export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [perfil, setPerfil] = useState("ADMINISTRADOR");
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
-
-  const seleccionarPerfil = (valor) => {
-    setPerfil(valor);
-    if (valor === "CLIENTE") {
-      setEmail("cliente@importsmart.com");
-      setPassword("cliente123");
-    } else {
-      setEmail("admin@importsmart.com");
-      setPassword("admin123");
-    }
-  };
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -30,7 +18,7 @@ export default function Login() {
     setCargando(true);
     try {
       const usuario = await login(email, password);
-      navigate(usuario.rol === "ADMINISTRADOR" ? "/" : "/pedidos");
+      navigate(usuario.rol === "ADMINISTRADOR" ? "/dashboard" : "/pedidos");
     } catch (err) {
       setError(err.response?.data?.mensaje || "No se pudo iniciar sesion. Revisa tus datos.");
     } finally {
@@ -45,30 +33,13 @@ export default function Login() {
         <h2>Iniciar sesion</h2>
         <p className="login-subtitulo">Acceso al sistema de importaciones</p>
 
-        <div className="login-perfiles" aria-label="Tipo de acceso">
-          <button
-            type="button"
-            className={perfil === "ADMINISTRADOR" ? "activo" : ""}
-            onClick={() => seleccionarPerfil("ADMINISTRADOR")}
-          >
-            Administrador
-          </button>
-          <button
-            type="button"
-            className={perfil === "CLIENTE" ? "activo" : ""}
-            onClick={() => seleccionarPerfil("CLIENTE")}
-          >
-            Cliente
-          </button>
-        </div>
-
         <div className="campo">
           <label>Correo</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@importsmart.com" required />
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="correo@empresa.com" required />
         </div>
         <div className="campo">
           <label>Contrasena</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="admin123" required />
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Ingresa tu contrasena" required />
         </div>
 
         {error && <p className="login-error">{error}</p>}

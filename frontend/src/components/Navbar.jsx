@@ -5,7 +5,7 @@ import logo from "../assets/logo-importsmart.svg";
 import "./Navbar.css";
 
 const enlaces = [
-  { to: "/", label: "Dashboard", exact: true, icono: "dashboard", soloAdmin: true },
+  { to: "/dashboard", label: "Dashboard", exact: true, icono: "dashboard", soloAdmin: true },
   { to: "/pedidos", label: "Pedidos", labelCliente: "Mis pedidos", icono: "box" },
   { to: "/nuevo-pedido", label: "Nuevo pedido", icono: "plus", soloAdmin: true },
   { to: "/simulador", label: "Simulador", labelCliente: "Cotizador", icono: "calculator" },

@@ -82,6 +82,8 @@ public class ClienteDemoInitializer implements CommandLineRunner {
     private void prepararCompatibilidadBaseDatos() {
         ejecutarSqlSeguro("ALTER TABLE usuarios MODIFY COLUMN rol VARCHAR(20) NOT NULL");
         ejecutarSqlSeguro("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cliente_id BIGINT NULL");
+        ejecutarSqlSeguro("UPDATE tarifas_envio SET dias_estimados = 22, descripcion = 'Envio aereo: referencia operativa de 15 a 22 dias calendario.' WHERE tipo = 'AEREO'");
+        ejecutarSqlSeguro("UPDATE tarifas_envio SET dias_estimados = 55, descripcion = 'Envio maritimo consolidado: referencia operativa de 40 a 55 dias calendario.' WHERE tipo = 'MARITIMO'");
     }
 
     private void ejecutarSqlSeguro(String sql) {

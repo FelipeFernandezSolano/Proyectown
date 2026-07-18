@@ -5,6 +5,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Navbar from "./components/Navbar";
 import Login from "./pages/Login";
 
+const Inicio = lazy(() => import("./pages/Inicio"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Pedidos = lazy(() => import("./pages/Pedidos"));
 const NuevoPedido = lazy(() => import("./pages/NuevoPedido"));
@@ -35,8 +36,9 @@ function RutasApp() {
   useAuth();
   return (
     <Routes>
+      <Route path="/" element={<Suspense fallback={<div className="contenido">Cargando...</div>}><Inicio /></Suspense>} />
       <Route path="/login" element={<Login />} />
-      <Route path="/" element={<ShellPrivado soloAdmin><Dashboard /></ShellPrivado>} />
+      <Route path="/dashboard" element={<ShellPrivado soloAdmin><Dashboard /></ShellPrivado>} />
       <Route path="/pedidos" element={<ShellPrivado><Pedidos /></ShellPrivado>} />
       <Route path="/nuevo-pedido" element={<ShellPrivado soloAdmin><NuevoPedido /></ShellPrivado>} />
       <Route path="/simulador" element={<ShellPrivado><Simulador /></ShellPrivado>} />

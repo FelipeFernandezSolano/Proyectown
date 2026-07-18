@@ -41,33 +41,6 @@
   font-size: 13.5px;
 }
 
-.login-perfiles {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  padding: 5px;
-  margin: -6px 0 18px;
-  border: 1px solid var(--pch-borde);
-  border-radius: 10px;
-  background: #f3f8fb;
-}
-
-.login-perfiles button {
-  border: 0;
-  border-radius: 7px;
-  padding: 9px 10px;
-  background: transparent;
-  color: var(--pch-gris-medio);
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.login-perfiles button.activo {
-  background: var(--pch-blanco);
-  color: var(--pch-azul);
-  box-shadow: 0 6px 14px rgba(8, 47, 73, 0.08);
-}
-
 .login-card .campo {
   text-align: left;
   margin-bottom: 14px;

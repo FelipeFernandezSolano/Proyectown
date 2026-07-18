@@ -141,8 +141,8 @@ INSERT INTO categorias (nombre) VALUES
 ('Deportes y fitness');
 
 INSERT INTO tarifas_envio (tipo, costo_por_kg_usd, dias_estimados, descripcion) VALUES
-('AEREO', 12.5, 6, 'Envio aereo express: mas rapido, ideal para carga liviana o urgente.'),
-('MARITIMO', 3.2, 35, 'Envio maritimo consolidado: mas economico, ideal para carga voluminosa.');
+('AEREO', 12.5, 22, 'Envio aereo: referencia operativa de 15 a 22 dias calendario.'),
+('MARITIMO', 3.2, 55, 'Envio maritimo consolidado: referencia operativa de 40 a 55 dias calendario.');
 
 INSERT INTO estados_pedido (nombre, orden, color) VALUES
 ('Cotizado', 1, '#5b6b7a'),

@@ -30,7 +30,7 @@
 
 body {
   margin: 0;
-  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  font-family: "Aptos", "Segoe UI Variable", "Segoe UI", Roboto, Arial, sans-serif;
   background:
     radial-gradient(circle at top left, rgba(20, 184, 196, 0.14), transparent 34vw),
     linear-gradient(180deg, #f7fbfd 0%, var(--pch-fondo) 42%, #edf3f7 100%);

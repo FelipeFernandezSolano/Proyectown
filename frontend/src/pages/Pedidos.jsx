@@ -40,7 +40,7 @@ function diasFaltantes(pedido) {
   if (!pedido?.fechaPedido) return null;
   const base = new Date(pedido.fechaPedido);
   if (Number.isNaN(base.getTime())) return null;
-  const dias = pedido.tipoEnvio === "MARITIMO" ? 22 : 5;
+  const dias = pedido.tipoEnvio === "MARITIMO" ? 55 : 22;
   const estimada = new Date(base);
   estimada.setDate(estimada.getDate() + dias);
   return Math.max(0, Math.ceil((estimada.getTime() - Date.now()) / 86400000));
@@ -50,8 +50,8 @@ function textoTiempoEstimado(pedido) {
   const faltan = diasFaltantes(pedido);
   const faltanTexto = faltan === null ? "" : ` (Faltan ${faltan} dias)`;
   return pedido?.tipoEnvio === "MARITIMO"
-    ? `Tiempo estimado de llegada: 15 a 22 dias calendario${faltanTexto}.`
-    : `Tiempo estimado de llegada: 3 a 5 dias habiles${faltanTexto}.`;
+    ? `Tiempo estimado de llegada: 40 a 55 dias calendario${faltanTexto}.`
+    : `Tiempo estimado de llegada: 15 a 22 dias calendario${faltanTexto}.`;
 }
 
 function TrackingStepper({ pedido }) {

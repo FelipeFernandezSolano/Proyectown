@@ -84,12 +84,26 @@ mysql -u root -p < database/importsmart_schema.sql
 
 ### Paso 2 — Configurar y levantar el backend
 
-1. Edita `backend/src/main/resources/application.properties` y coloca **tu usuario y contraseña de MySQL**:
+1. Crea tu configuracion local de MySQL sin subir contraseñas a Git. Copia:
+
+   ```bash
+   backend/application-local.example.properties
+   ```
+
+   como:
+
+   ```bash
+   backend/application-local.properties
+   ```
+
+   y coloca **tu usuario y contraseña de MySQL**:
 
    ```properties
    spring.datasource.username=root
    spring.datasource.password=TU_PASSWORD_DE_MYSQL
    ```
+
+   > `application-local.properties` esta ignorado por Git. Cada computadora puede tener su propia contraseña.
 
 2. Levanta el backend:
 
@@ -280,7 +294,7 @@ Estas carpetas se regeneran solas con `npm install` y `mvn spring-boot:run`.
 
 ## 7. Solución de problemas
 
-- **El backend no conecta a MySQL:** revisa usuario/contraseña en `application.properties` y
+- **El backend no conecta a MySQL:** revisa usuario/contraseña en `backend/application-local.properties` y
   que el servicio MySQL esté encendido y la base `importsmart` creada (Paso 1).
 - **El frontend no trae datos / error 401:** verifica que el backend esté en el puerto 8080
   y vuelve a iniciar sesión.

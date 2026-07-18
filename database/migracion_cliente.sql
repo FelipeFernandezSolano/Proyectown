@@ -2,6 +2,16 @@ USE importsmart;
 
 ALTER TABLE usuarios MODIFY COLUMN rol VARCHAR(20) NOT NULL;
 
+UPDATE tarifas_envio
+SET dias_estimados = 22,
+    descripcion = 'Envio aereo: referencia operativa de 15 a 22 dias calendario.'
+WHERE tipo = 'AEREO';
+
+UPDATE tarifas_envio
+SET dias_estimados = 55,
+    descripcion = 'Envio maritimo consolidado: referencia operativa de 40 a 55 dias calendario.'
+WHERE tipo = 'MARITIMO';
+
 INSERT INTO usuarios (nombre, email, password_hash, rol, activo)
 SELECT 'Administrador', 'admin@importsmart.com', '$2b$10$6vctLYktZ.aewJvhcbKb7OD4Bamg.rVzqfJznqbTxkzks2i76bZI6', 'ADMINISTRADOR', 1
 WHERE NOT EXISTS (
