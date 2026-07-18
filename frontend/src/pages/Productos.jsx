@@ -69,7 +69,6 @@ export default function Productos() {
       { nombre: "Alibaba", url: `https://www.alibaba.com/trade/search?SearchText=${consulta}` },
       { nombre: "AliExpress", url: `https://www.aliexpress.com/wholesale?SearchText=${consulta}` },
       { nombre: "eBay", url: `https://www.ebay.com/sch/i.html?_nkw=${consulta}` },
-      { nombre: "MercadoLibre", url: `https://listado.mercadolibre.com/${consulta}` },
     ];
     if (esLinkProveedorReal(producto.linkProveedor)) {
       return [{ nombre: "Proveedor", url: proveedorHref(producto.linkProveedor) }, ...enlaces];

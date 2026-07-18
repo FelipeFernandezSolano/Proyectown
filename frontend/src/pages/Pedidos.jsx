@@ -15,13 +15,23 @@ function Semaforo({ valor }) {
   return <span className="semaforo"><span className="punto" style={{ background: r.punto }} />{r.texto}</span>;
 }
 
-const PASOS_TRACKING = ["Cotizado", "Aprobado", "En transito / Aduana", "Entregado"];
+const PASOS_TRACKING = ["Cotizado", "Aprobado", "Comprado", "En bodega", "En transito", "En aduana", "Entregado"];
+
+function normalizarEstado(estado) {
+  return String(estado || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
 
 function estadoLogistico(estado) {
-  const valor = String(estado || "").toLowerCase();
+  const valor = normalizarEstado(estado);
   if (valor.includes("entregado")) return "Entregado";
-  if (valor.includes("aduana") || valor.includes("transito")) return "En transito / Aduana";
-  if (valor.includes("aprobado") || valor.includes("comprado") || valor.includes("bodega")) return "Aprobado";
+  if (valor.includes("aduana")) return "En aduana";
+  if (valor.includes("transito")) return "En transito";
+  if (valor.includes("bodega")) return "En bodega";
+  if (valor.includes("comprado")) return "Comprado";
+  if (valor.includes("aprobado")) return "Aprobado";
   return "Cotizado";
 }
 
@@ -44,16 +54,27 @@ function textoTiempoEstimado(pedido) {
 }
 
 function TrackingStepper({ pedido }) {
-  const activoIndex = PASOS_TRACKING.indexOf(estadoLogistico(pedido?.estado));
+  const historialPorEstado = new Map(
+    (pedido?.historial || []).map((h) => [estadoLogistico(h.estado), h])
+  );
+  const indexEstadoActual = PASOS_TRACKING.indexOf(estadoLogistico(pedido?.estado));
+  const indexHistorial = PASOS_TRACKING.reduce((max, paso, index) => (
+    historialPorEstado.has(paso) ? Math.max(max, index) : max
+  ), -1);
+  const activoIndex = Math.max(indexEstadoActual, indexHistorial, 0);
   return (
     <div className="tracking-box">
       <div className="tracking-stepper">
-        {PASOS_TRACKING.map((paso, index) => (
-          <div key={paso} className={"tracking-step" + (index <= activoIndex ? " activo" : "")}>
-            <span>{index + 1}</span>
-            <b>{paso}</b>
-          </div>
-        ))}
+        {PASOS_TRACKING.map((paso, index) => {
+          const historial = historialPorEstado.get(paso);
+          return (
+            <div key={paso} className={"tracking-step" + (index <= activoIndex ? " activo" : "")}>
+              <span>{index + 1}</span>
+              <b>{paso}</b>
+              <small>{historial?.fecha ? formatoFecha(historial.fecha) : "Pendiente"}</small>
+            </div>
+          );
+        })}
       </div>
       <p>{textoTiempoEstimado(pedido)}</p>
     </div>

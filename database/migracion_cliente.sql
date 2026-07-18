@@ -2,6 +2,32 @@ USE importsmart;
 
 ALTER TABLE usuarios MODIFY COLUMN rol VARCHAR(20) NOT NULL;
 
+INSERT INTO usuarios (nombre, email, password_hash, rol, activo)
+SELECT 'Administrador', 'admin@importsmart.com', '$2b$10$6vctLYktZ.aewJvhcbKb7OD4Bamg.rVzqfJznqbTxkzks2i76bZI6', 'ADMINISTRADOR', 1
+WHERE NOT EXISTS (
+  SELECT 1 FROM usuarios WHERE email = 'admin@importsmart.com'
+);
+
+INSERT INTO usuarios (nombre, email, password_hash, rol, activo)
+SELECT 'Operador', 'operador@importsmart.com', '$2b$10$J20yDVjD7THutWbuddMdiOunNOw7KSUwYk3dbRYI1h0vnBwsh/OiC', 'OPERADOR', 1
+WHERE NOT EXISTS (
+  SELECT 1 FROM usuarios WHERE email = 'operador@importsmart.com'
+);
+
+UPDATE usuarios
+SET nombre = 'Administrador',
+    password_hash = '$2b$10$6vctLYktZ.aewJvhcbKb7OD4Bamg.rVzqfJznqbTxkzks2i76bZI6',
+    rol = 'ADMINISTRADOR',
+    activo = 1
+WHERE email = 'admin@importsmart.com';
+
+UPDATE usuarios
+SET nombre = 'Operador',
+    password_hash = '$2b$10$J20yDVjD7THutWbuddMdiOunNOw7KSUwYk3dbRYI1h0vnBwsh/OiC',
+    rol = 'OPERADOR',
+    activo = 1
+WHERE email = 'operador@importsmart.com';
+
 SET @sql = (
   SELECT IF(COUNT(*) = 0,
     'ALTER TABLE usuarios ADD COLUMN cliente_id BIGINT NULL',
@@ -55,6 +81,14 @@ SELECT 'TecnoAndes S.A.', 'cliente@importsmart.com', '$2b$12$J93crfjHCmM89F6wlbc
 WHERE NOT EXISTS (
   SELECT 1 FROM usuarios WHERE email = 'cliente@importsmart.com'
 );
+
+UPDATE usuarios
+SET nombre = COALESCE((SELECT nombre FROM clientes WHERE id = 1), 'TecnoAndes S.A.'),
+    password_hash = '$2b$12$J93crfjHCmM89F6wlbczKeJMQDrp3fwXyOiiNHabyjo754aBg94fC',
+    cliente_id = 1,
+    rol = 'CLIENTE',
+    activo = 1
+WHERE email = 'cliente@importsmart.com';
 
 UPDATE pedidos p
 JOIN clientes c ON c.id = p.cliente_id

@@ -67,19 +67,13 @@ public class ClienteDemoInitializer implements CommandLineRunner {
     @Transactional
     public void run(String... args) {
         prepararCompatibilidadBaseDatos();
+        asegurarUsuarioDemo("Administrador", "admin@importsmart.com", "admin123", Usuario.RolUsuario.ADMINISTRADOR, null);
+        asegurarUsuarioDemo("Operador", "operador@importsmart.com", "operador123", Usuario.RolUsuario.OPERADOR, null);
 
         Cliente cliente = clienteRepository.findById(1L)
                 .orElseGet(() -> clienteRepository.findAll().stream().findFirst().orElseGet(this::crearClienteDemo));
 
-        Usuario usuario = usuarioRepository.findByEmailIgnoreCase("cliente@importsmart.com")
-                .orElseGet(Usuario::new);
-        usuario.setNombre(cliente.getNombre());
-        usuario.setEmail("cliente@importsmart.com");
-        usuario.setPasswordHash(passwordEncoder.encode("cliente123"));
-        usuario.setCliente(cliente);
-        usuario.setRol(Usuario.RolUsuario.CLIENTE);
-        usuario.setActivo(true);
-        usuarioRepository.save(usuario);
+        asegurarUsuarioDemo(cliente.getNombre(), "cliente@importsmart.com", "cliente123", Usuario.RolUsuario.CLIENTE, cliente);
 
         asegurarPedidosClienteDemo(cliente);
         normalizarPedidosCliente(cliente);
@@ -108,6 +102,17 @@ public class ClienteDemoInitializer implements CommandLineRunner {
         cliente.setPais("Costa Rica");
         cliente.setDireccion("San Jose, Costa Rica");
         return clienteRepository.save(cliente);
+    }
+
+    private void asegurarUsuarioDemo(String nombre, String email, String password, Usuario.RolUsuario rol, Cliente cliente) {
+        Usuario usuario = usuarioRepository.findByEmailIgnoreCase(email).orElseGet(Usuario::new);
+        usuario.setNombre(nombre);
+        usuario.setEmail(email);
+        usuario.setPasswordHash(passwordEncoder.encode(password));
+        usuario.setRol(rol);
+        usuario.setCliente(cliente);
+        usuario.setActivo(true);
+        usuarioRepository.save(usuario);
     }
 
     private void asegurarPedidosClienteDemo(Cliente cliente) {

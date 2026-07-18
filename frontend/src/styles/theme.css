@@ -1281,8 +1281,8 @@ a.alert-item {
 
 .tracking-stepper {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(7, minmax(86px, 1fr));
+  gap: 10px;
 }
 
 .tracking-step {
@@ -1312,6 +1312,13 @@ a.alert-item {
   line-height: 1.2;
 }
 
+.tracking-step small {
+  min-height: 16px;
+  color: var(--pch-gris-medio);
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .tracking-step.activo {
   color: var(--pch-azul-oscuro);
 }
@@ -1320,6 +1327,10 @@ a.alert-item {
   background: var(--pch-azul);
   color: var(--pch-blanco);
   border-color: var(--pch-azul);
+}
+
+.tracking-step.activo small {
+  color: var(--pch-azul);
 }
 
 .tracking-box p {
@@ -1349,6 +1360,12 @@ a.alert-item {
   justify-content: flex-end;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+@media (max-width: 980px) {
+  .tracking-stepper {
+    grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  }
 }
 
 .direccion-entrega {
