@@ -4,6 +4,18 @@ import client from "./client";
 export const login = (email, password) =>
   client.post("/auth/login", { email, password }).then((r) => r.data);
 
+export const registrar = (dto) =>
+  client.post("/auth/register", dto).then((r) => r.data);
+
+export const loginConGoogle = (credential) =>
+  client.post("/auth/google", { credential }).then((r) => r.data);
+
+export const olvideContrasena = (email) =>
+  client.post("/auth/forgot-password", { email }).then((r) => r.data);
+
+export const restablecerContrasena = (dto) =>
+  client.post("/auth/reset-password", dto).then((r) => r.data);
+
 // ---- Dashboard (RF-15) ----
 export const getKpis = () => client.get("/dashboard/kpis").then((r) => r.data);
 export const getProductosMasRentables = (limite = 8) =>

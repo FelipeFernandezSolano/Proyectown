@@ -14,3 +14,7 @@ export const validarTelefono = (v) => {
 };
 
 export const mayorQueCero = (v) => Number(v) > 0;
+
+// Contraseña segura: minimo 8 caracteres, al menos una mayuscula y un caracter especial.
+export const validarPasswordSegura = (v) =>
+  /^(?=.*[A-Z])(?=.*[^A-Za-z0-9]).{8,}$/.test(String(v || ""));

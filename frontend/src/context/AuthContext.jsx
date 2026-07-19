@@ -1,5 +1,5 @@
 import { createContext, useContext, useState } from "react";
-import { login as loginApi } from "../api/endpoints";
+import { login as loginApi, registrar as registrarApi, loginConGoogle as loginConGoogleApi } from "../api/endpoints";
 
 const AuthContext = createContext(null);
 
@@ -9,13 +9,27 @@ export function AuthProvider({ children }) {
     return stored ? JSON.parse(stored) : null;
   });
 
-  const login = async (email, password) => {
-    const data = await loginApi(email, password);
+  const guardarSesion = (data) => {
     localStorage.setItem("is_token", data.token);
     const usuarioInfo = { nombre: data.nombre, rol: data.rol, clienteId: data.clienteId };
     localStorage.setItem("is_usuario", JSON.stringify(usuarioInfo));
     setUsuario(usuarioInfo);
     return usuarioInfo;
+  };
+
+  const login = async (email, password) => {
+    const data = await loginApi(email, password);
+    return guardarSesion(data);
+  };
+
+  const registrar = async (dto) => {
+    const data = await registrarApi(dto);
+    return guardarSesion(data);
+  };
+
+  const loginConGoogle = async (credential) => {
+    const data = await loginConGoogleApi(credential);
+    return guardarSesion(data);
   };
 
   const logout = () => {
@@ -25,7 +39,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ usuario, login, logout }}>
+    <AuthContext.Provider value={{ usuario, login, registrar, loginConGoogle, logout }}>
       {children}
     </AuthContext.Provider>
   );

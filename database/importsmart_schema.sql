@@ -13,6 +13,9 @@ CREATE TABLE usuarios (
   nombre VARCHAR(100) NOT NULL,
   email VARCHAR(150) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
+  telefono VARCHAR(30),
+  reset_token VARCHAR(100),
+  reset_token_expira DATETIME,
   rol VARCHAR(20) NOT NULL,
   activo TINYINT(1) NOT NULL DEFAULT 1,
   creado_en DATETIME DEFAULT CURRENT_TIMESTAMP

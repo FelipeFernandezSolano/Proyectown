@@ -4,6 +4,9 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Navbar from "./components/Navbar";
 import Login from "./pages/Login";
+import Registro from "./pages/Registro";
+import OlvideContrasena from "./pages/OlvideContrasena";
+import RestablecerContrasena from "./pages/RestablecerContrasena";
 
 const Inicio = lazy(() => import("./pages/Inicio"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -38,6 +41,9 @@ function RutasApp() {
     <Routes>
       <Route path="/" element={<Suspense fallback={<div className="contenido">Cargando...</div>}><Inicio /></Suspense>} />
       <Route path="/login" element={<Login />} />
+      <Route path="/registro" element={<Registro />} />
+      <Route path="/olvide-contrasena" element={<OlvideContrasena />} />
+      <Route path="/restablecer-contrasena" element={<RestablecerContrasena />} />
       <Route path="/dashboard" element={<ShellPrivado soloAdmin><Dashboard /></ShellPrivado>} />
       <Route path="/pedidos" element={<ShellPrivado><Pedidos /></ShellPrivado>} />
       <Route path="/nuevo-pedido" element={<ShellPrivado soloAdmin><NuevoPedido /></ShellPrivado>} />

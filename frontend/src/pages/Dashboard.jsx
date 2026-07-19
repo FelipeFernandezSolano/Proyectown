@@ -8,8 +8,15 @@ import { formatoUSD, formatoNumero } from "../utils/format";
 import { MONEDAS, nombreMoneda } from "../utils/monedas";
 import KpiCard from "../components/KpiCard";
 import Icon from "../components/Icon";
+import "./Dashboard.css";
 
 const COLORS = ["#12a37a", "#f59e0b", "#dc2626"];
+
+const TOOLTIP_OSCURO = {
+  contentStyle: { background: "#0e2a3e", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 8 },
+  itemStyle: { color: "#eaf3f9" },
+  labelStyle: { color: "#95afc1" },
+};
 
 function CurrencySelect({ value, onChange }) {
   const [abierto, setAbierto] = useState(false);
@@ -121,7 +128,7 @@ export default function Dashboard() {
     : [];
 
   return (
-    <div className="contenido">
+    <div className="contenido dashboard-oscuro">
       <div className="page-header">
         <div>
           <span className="page-kicker"><Icon name="dashboard" size={13} /> Operacion comercial</span>
@@ -153,7 +160,7 @@ export default function Dashboard() {
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#d9e5ec" />
                 <XAxis type="number" tickFormatter={(v) => `$${v}`} fontSize={12} />
                 <YAxis type="category" dataKey="nombre" width={220} fontSize={11} interval={0} />
-                <Tooltip formatter={(v) => formatoUSD(v)} />
+                <Tooltip formatter={(v) => formatoUSD(v)} {...TOOLTIP_OSCURO} />
                 <Bar dataKey="utilidad" fill="#0c6291" radius={[0, 8, 8, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -169,7 +176,7 @@ export default function Dashboard() {
                   <Pie data={semaforo} dataKey="value" nameKey="name" innerRadius={58} outerRadius={92} paddingAngle={3}>
                     {semaforo.map((e, i) => <Cell key={e.name} fill={COLORS[i]} />)}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip {...TOOLTIP_OSCURO} />
                 </PieChart>
               </ResponsiveContainer>
               <div className="metric-strip">

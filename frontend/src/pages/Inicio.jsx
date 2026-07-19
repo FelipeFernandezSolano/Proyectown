@@ -149,24 +149,6 @@ export default function Inicio() {
               <li><Icon name="check" size={16} /> Cotizaciones y documentos en PDF para cada cliente.</li>
             </ul>
           </div>
-
-          <aside className="is-hero-card reveal">
-            <div className="is-card-top">
-              <span className="is-mini">Orden en seguimiento</span>
-              <span className="is-chip"><Icon name="ship" size={13} /> Maritimo</span>
-            </div>
-            <h3>IMP-2026-041</h3>
-            <div className="is-progress"><span style={{ width: "62%" }} /></div>
-            <div className="is-card-rows">
-              <div><span>Modalidad</span><b>Maritimo consolidado</b></div>
-              <div><span>Etapa actual</span><b>En transito</b></div>
-              <div><span>Entrega estimada</span><b>40 - 55 dias</b></div>
-            </div>
-            <div className="is-card-track">
-              <i className="on" /><i className="on" /><i className="on" /><i /><i />
-              <span>Proveedor</span><span>Bodega</span><span>Transito</span><span>Aduana</span><span>Entrega</span>
-            </div>
-          </aside>
         </div>
       </section>
 

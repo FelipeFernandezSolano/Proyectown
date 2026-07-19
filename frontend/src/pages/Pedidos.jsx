@@ -87,6 +87,8 @@ export default function Pedidos() {
   const [searchParams, setSearchParams] = useSearchParams();
   const esAdmin = usuario?.rol === "ADMINISTRADOR";
   const esCliente = usuario?.rol === "CLIENTE";
+  const esOperador = usuario?.rol === "OPERADOR";
+  const puedeGestionar = esAdmin || esOperador;
   const [pedidos, setPedidos] = useState([]);
   const [estados, setEstados] = useState([]);
   const [detalle, setDetalle] = useState(null);
@@ -129,8 +131,10 @@ export default function Pedidos() {
   useEffect(() => {
     const inicializar = async () => {
       await cargar();
-      if (esAdmin) {
+      if (puedeGestionar) {
         getEstados().then(setEstados).catch(() => setEstados([]));
+      }
+      if (esAdmin) {
         getTipoCambio().then(setTipoCambio).catch(() => setTipoCambio(null));
       }
     };
@@ -274,7 +278,11 @@ export default function Pedidos() {
           <span className="page-kicker"><Icon name="box" size={13} /> Operacion logistica</span>
           <h2>{esCliente ? "Mis pedidos y rastreo" : "Pedidos de importacion"}</h2>
           <p className="subtitulo-pagina">
-            {esAdmin ? "Control comercial, utilidad, rentabilidad y estado de cada pedido." : "Seguimiento logistico, pagos y estado de tus importaciones."}
+            {esAdmin
+              ? "Control comercial, utilidad, rentabilidad y estado de cada pedido."
+              : esOperador
+                ? "Gestion logistica: actualiza estados y consulta costos operativos de cada pedido."
+                : "Seguimiento logistico, pagos y estado de tus importaciones."}
           </p>
         </div>
         <div className="page-actions">
@@ -284,22 +292,24 @@ export default function Pedidos() {
         </div>
       </div>
 
-      {esAdmin && (
+      {puedeGestionar && (
         <div className="toolbar-pedidos">
-          <div className="tabs-pch">
-            {filtros.map((f) => (
-              <button
-                key={f.valor || "TODOS"}
-                type="button"
-                className={"tab-pch" + ((rentabilidadObjetivo || null) === f.valor ? " activo" : "")}
-                onClick={() => cambiarFiltro(f.valor)}
-              >
-                <Icon name={f.icono} size={14} />
-                {f.label}
-                <span className="conteo-tab">{f.conteo}</span>
-              </button>
-            ))}
-          </div>
+          {esAdmin && (
+            <div className="tabs-pch">
+              {filtros.map((f) => (
+                <button
+                  key={f.valor || "TODOS"}
+                  type="button"
+                  className={"tab-pch" + ((rentabilidadObjetivo || null) === f.valor ? " activo" : "")}
+                  onClick={() => cambiarFiltro(f.valor)}
+                >
+                  <Icon name={f.icono} size={14} />
+                  {f.label}
+                  <span className="conteo-tab">{f.conteo}</span>
+                </button>
+              ))}
+            </div>
+          )}
           <div className="filtros-pedidos">
             <div className="buscador-tabla">
               <Icon name="search" size={15} />
@@ -374,23 +384,24 @@ export default function Pedidos() {
           <thead>
             <tr>
               <th>Codigo</th>
-              {esAdmin && <th>Cliente</th>}
+              {puedeGestionar && <th>Cliente</th>}
               <th>Envio</th><th>Estado</th>
               {esAdmin && <><th>Venta</th><th>Utilidad</th><th>Rentabilidad</th></>}
-              {!esAdmin && <><th>Total</th><th>Pagado</th><th>Saldo</th></>}
+              {esOperador && <th>Peso facturable</th>}
+              {esCliente && <><th>Total</th><th>Pagado</th><th>Saldo</th></>}
               <th>Fecha</th>{esAdmin && <th></th>}
             </tr>
           </thead>
           <tbody>
             {pedidosFiltrados.length === 0 && (
-              <tr><td colSpan={esAdmin ? 9 : 7}><div className="estado-vacio">No hay pedidos para este filtro.</div></td></tr>
+              <tr><td colSpan={esAdmin ? 9 : esOperador ? 6 : 7}><div className="estado-vacio">No hay pedidos para este filtro.</div></td></tr>
             )}
             {pedidosFiltrados.map((p) => (
               <tr
                 key={p.id}
                 className="fila-clickeable"
-                onDoubleClick={() => (esAdmin ? abrir(p.id) : abrirTracking(p.id))}
-                title={esAdmin ? "Doble clic para ver el detalle" : "Doble clic para rastrear"}
+                onDoubleClick={() => (puedeGestionar ? abrir(p.id) : abrirTracking(p.id))}
+                title={puedeGestionar ? "Doble clic para ver el detalle" : "Doble clic para rastrear"}
               >
                 <td>
                   <b>{p.codigo}</b>
@@ -406,7 +417,7 @@ export default function Pedidos() {
                     {"\uD83D\uDCCB"}
                   </button>
                 </td>
-                {esAdmin && <td>{p.clienteNombre || "-"}</td>}
+                {puedeGestionar && <td>{p.clienteNombre || "-"}</td>}
                 <td><span className="chip-envio"><Icon name={p.tipoEnvio === "MARITIMO" ? "ship" : "plane"} size={13} />{p.tipoEnvio}</span></td>
                 <td><span className="badge badge-azul" style={{ background: `${p.estadoColor || "#0c6291"}22`, color: p.estadoColor || "#0c6291" }}>{p.estado}</span></td>
                 {esAdmin && (
@@ -416,7 +427,8 @@ export default function Pedidos() {
                     <td><Semaforo valor={p.rentabilidad} /></td>
                   </>
                 )}
-                {!esAdmin && (
+                {esOperador && <td>{formatoNumero(p.pesoFacturableTotal)} kg</td>}
+                {esCliente && (
                   <>
                     <td><b>{formatoUSD(p.totalVenta)}</b></td>
                     <td>{formatoUSD(p.montoPagado)}</td>
@@ -453,9 +465,9 @@ export default function Pedidos() {
             <div className="metric-strip" style={{ margin: "14px 0" }}>
               <div className="metric-box"><span>Estado</span><b>{detalle.estado}</b></div>
               <div className="metric-box"><span>Peso facturable</span><b>{formatoNumero(detalle.pesoFacturableTotal)} kg</b></div>
-              <div className="metric-box"><span>Total pedido</span><b>{formatoUSD(detalle.totalVenta)}</b></div>
-              <div className="metric-box"><span>Monto pagado</span><b>{formatoUSD(detalle.montoPagado)}</b></div>
-              <div className="metric-box"><span>Saldo pendiente</span><b className={Number(detalle.saldoPendiente) > 0 ? "num-negativo" : "num-positivo"}>{formatoUSD(detalle.saldoPendiente)}</b></div>
+              {!esOperador && <div className="metric-box"><span>Total pedido</span><b>{formatoUSD(detalle.totalVenta)}</b></div>}
+              {!esOperador && <div className="metric-box"><span>Monto pagado</span><b>{formatoUSD(detalle.montoPagado)}</b></div>}
+              {!esOperador && <div className="metric-box"><span>Saldo pendiente</span><b className={Number(detalle.saldoPendiente) > 0 ? "num-negativo" : "num-positivo"}>{formatoUSD(detalle.saldoPendiente)}</b></div>}
               {esAdmin && <div className="metric-box"><span>Utilidad</span><b className={Number(detalle.utilidad) >= 0 ? "num-positivo" : "num-negativo"}>{formatoUSD(detalle.utilidad)}</b></div>}
             </div>
 
@@ -493,15 +505,17 @@ export default function Pedidos() {
               </tbody>
             </table>
 
-            {esAdmin && (
+            {(esAdmin || esOperador) && (
               <div className="fila-total-form" style={{ marginTop: 14 }}>
                 <div><span>Subtotal productos</span><b>{formatoUSD(detalle.subtotalProductos)}</b></div>
                 <div><span>Costo de envio</span><b>{formatoUSD(detalle.costoEnvio)}</b></div>
                 <div><span>Gastos</span><b>{formatoUSD(detalle.gastosAdicionales)}</b></div>
-                <div><span>Total venta</span><b>{formatoUSD(detalle.totalVenta)}</b></div>
-                <div><span>Utilidad ({formatoNumero(detalle.margenPct)}%)</span>
-                  <b className={Number(detalle.utilidad) >= 0 ? "num-positivo" : "num-negativo"}>{formatoUSD(detalle.utilidad)}</b></div>
-                {requiereRescateFinanciero(detalle) && (
+                {esAdmin && <div><span>Total venta</span><b>{formatoUSD(detalle.totalVenta)}</b></div>}
+                {esAdmin && (
+                  <div><span>Utilidad ({formatoNumero(detalle.margenPct)}%)</span>
+                    <b className={Number(detalle.utilidad) >= 0 ? "num-positivo" : "num-negativo"}>{formatoUSD(detalle.utilidad)}</b></div>
+                )}
+                {esAdmin && requiereRescateFinanciero(detalle) && (
                   <div className="rescate-financiero">
                     <button
                       type="button"
@@ -547,7 +561,7 @@ export default function Pedidos() {
                     )}
                   </div>
                 )}
-                <div className="metric-rentabilidad"><span>Rentabilidad</span><b><Semaforo valor={detalle.rentabilidad} /></b></div>
+                {esAdmin && <div className="metric-rentabilidad"><span>Rentabilidad</span><b><Semaforo valor={detalle.rentabilidad} /></b></div>}
               </div>
             )}
 
@@ -563,7 +577,7 @@ export default function Pedidos() {
               ))}
             </ul>
 
-            {esAdmin && (
+            {puedeGestionar && (
               <>
                 <h4 className="modal-section-title"><Icon name="edit" size={15} />Actualizar estado</h4>
                 <div className="form-row">

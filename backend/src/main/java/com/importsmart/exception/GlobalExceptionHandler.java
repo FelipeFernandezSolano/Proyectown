@@ -21,7 +21,22 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleBadCredentials(BadCredentialsException ex) {
-        return construir(HttpStatus.UNAUTHORIZED, "Correo o contrasena incorrectos");
+        return construir(HttpStatus.UNAUTHORIZED, "Correo o contraseña incorrectos");
+    }
+
+    @ExceptionHandler(EmailEnUsoException.class)
+    public ResponseEntity<ErrorResponse> handleEmailEnUso(EmailEnUsoException ex) {
+        return construir(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(TelefonoEnUsoException.class)
+    public ResponseEntity<ErrorResponse> handleTelefonoEnUso(TelefonoEnUsoException ex) {
+        return construir(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(SolicitudInvalidaException.class)
+    public ResponseEntity<ErrorResponse> handleSolicitudInvalida(SolicitudInvalidaException ex) {
+        return construir(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
