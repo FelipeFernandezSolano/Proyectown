@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../context/AuthContext";
+import Icon from "../components/Icon";
 import logo from "../assets/logo-importsmart.svg";
 import "./Login.css";
 
@@ -47,6 +48,11 @@ export default function Login() {
   return (
     <div className="login-fondo">
       <form className="login-card" onSubmit={onSubmit}>
+        <Link to="/" className="login-volver">
+          <Icon name="chevronLeft" size={18} />
+          <span>Volver al inicio</span>
+        </Link>
+
         <img src={logo} alt="ImportSmart" className="login-logo" />
         <h2>Iniciar sesion</h2>
         <p className="login-subtitulo">Acceso al sistema de importaciones</p>

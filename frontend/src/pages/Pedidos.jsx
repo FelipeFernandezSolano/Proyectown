@@ -211,7 +211,8 @@ export default function Pedidos() {
     }
   };
 
-  const requiereRescateFinanciero = (pedido) => esAdmin && Number(pedido?.utilidad || 0) <= 0;
+  const requiereRescateFinanciero = (pedido) =>
+    esAdmin && (pedido?.rentabilidad === "NO_RENTABLE" || pedido?.rentabilidad === "POCO_RENTABLE");
 
   const tasaUsdCrc = (pedido) => {
     const tasa = Number(tipoCambio?.rates?.CRC || tipoCambio?.colonesPorDolar || pedido?.tipoCambio);
@@ -380,7 +381,7 @@ export default function Pedidos() {
         </div>
       )}
 
-      {esCliente && (
+      {(esCliente || esOperador) && (
         <div className="toolbar-pedidos">
           <div className="buscador-tabla buscador-rastreo">
             <Icon name="search" size={15} />
@@ -398,7 +399,7 @@ export default function Pedidos() {
         </div>
       )}
 
-      {esCliente && trackingDetalle && (
+      {(esCliente || esOperador) && trackingDetalle && (
         <div className="card tracking-panel-cliente">
           <div className="page-header tracking-panel-header">
             <div>
@@ -416,9 +417,15 @@ export default function Pedidos() {
           </div>
           <TrackingStepper pedido={trackingDetalle} />
           <div className="metric-strip" style={{ marginTop: 14 }}>
-            <div className="metric-box"><span>Total pedido</span><b>{formatoUSD(trackingDetalle.totalVenta)}</b></div>
-            <div className="metric-box"><span>Monto pagado</span><b>{formatoUSD(trackingDetalle.montoPagado)}</b></div>
-            <div className="metric-box"><span>Saldo</span><b className={Number(trackingDetalle.saldoPendiente) > 0 ? "num-negativo" : "num-positivo"}>{Number(trackingDetalle.saldoPendiente) > 0 ? `Monto adeudado: ${formatoUSD(trackingDetalle.saldoPendiente)}` : "Pagado"}</b></div>
+            {esOperador ? (
+              <div className="metric-box"><span>Peso facturable</span><b>{formatoNumero(trackingDetalle.pesoFacturableTotal)} kg</b></div>
+            ) : (
+              <>
+                <div className="metric-box"><span>Total pedido</span><b>{formatoUSD(trackingDetalle.totalVenta)}</b></div>
+                <div className="metric-box"><span>Monto pagado</span><b>{formatoUSD(trackingDetalle.montoPagado)}</b></div>
+                <div className="metric-box"><span>Saldo</span><b className={Number(trackingDetalle.saldoPendiente) > 0 ? "num-negativo" : "num-positivo"}>{Number(trackingDetalle.saldoPendiente) > 0 ? `Monto adeudado: ${formatoUSD(trackingDetalle.saldoPendiente)}` : "Pagado"}</b></div>
+              </>
+            )}
             <div className="metric-box"><span>Fecha pedido</span><b>{formatoFecha(trackingDetalle.fechaPedido)}</b></div>
           </div>
           <div className="surface-card direccion-entrega">
