@@ -187,6 +187,9 @@ export default function NuevoPedido() {
         descripcion: form.descripcion || items.map((it) => productos.find((p) => p.id === Number(it.productoId))?.nombre).filter(Boolean).join(", "),
         direccionEntrega: form.direccionEntrega.trim(),
         gastosAdicionales: Number(form.gastosAdicionales) || 0,
+        // Inmutabilidad del estado inicial: el cliente siempre crea en "En revisión"
+        // (el backend tambien lo fuerza, esto es defensa en profundidad desde el front).
+        ...(esCliente ? { estadoNombre: "En revisión" } : {}),
         items: itemsValidos.map((it) => ({
           productoId: Number(it.productoId), cantidad: Number(it.cantidad) || 1,
           costoUnitario: Number(it.costoUnitario), precioVenta: Number(it.precioVenta),
@@ -211,9 +214,11 @@ export default function NuevoPedido() {
     <div className="contenido">
       <div className="page-header">
         <div>
-          <span className="page-kicker"><Icon name="plus" size={13} /> Cotizacion operativa</span>
-          <h2>Nuevo pedido de importacion</h2>
-          <p className="subtitulo-pagina">Calcula peso volumetrico, envio, utilidad y rentabilidad antes de aprobar la compra.</p>
+          <span className="page-kicker"><Icon name="plus" size={13} /> {esCliente ? "Solicitud de cotizacion" : "Cotizacion operativa"}</span>
+          <h2>{esCliente ? "Solicitar cotizacion de importacion" : "Nuevo pedido de importacion"}</h2>
+          <p className="subtitulo-pagina">{esCliente
+            ? "Completa los datos de tu carga desde China hasta Costa Rica para recibir una pre-cotizacion estimada."
+            : "Calcula peso volumetrico, envio, utilidad y rentabilidad antes de aprobar la compra."}</p>
         </div>
       </div>
 
@@ -337,38 +342,57 @@ export default function NuevoPedido() {
               </div>
             ))}
             <button className="btn btn-secundario mini-boton" onClick={addPaquete}><Icon name="plus" size={14} />Agregar paquete</button>
-            <p className="texto-tenue nota-tarifa">
-              Aereo: peso volumetrico = m3 x 168; kg real a $20 y excedente volumetrico a $18.
-              Maritimo: m3 x $850.
-            </p>
+            {!esCliente && (
+              <p className="texto-tenue nota-tarifa">
+                Aereo: peso volumetrico = m3 x 168; kg real a $20 y excedente volumetrico a $18.
+                Maritimo: m3 x $850.
+              </p>
+            )}
           </div>
         </div>
 
         <aside className="card summary-sidebar">
           <h3 className="card-titulo"><span className="icono-titulo"><Icon name="calculator" size={16} /></span>Resumen de cotización</h3>
-          <div className="fila-total-form">
-            <div><span>Peso facturable</span><b>{formatoNumero(totales.facturable)} kg</b></div>
-            <div><span>Costo envio</span><b>{formatoUSD(totales.costoEnvio)}</b></div>
-            <div><span>Subtotal</span><b>{formatoUSD(totales.subtotal)}</b></div>
-            <div><span>Total venta</span><b>{formatoUSD(totales.totalVenta)}</b></div>
-            <div><span>Utilidad ({formatoNumero(totales.margen)}%)</span>
-              <b className={totales.utilidad >= 0 ? "num-positivo" : "num-negativo"}>{formatoUSD(totales.utilidad)}</b></div>
-            <div className="metric-rentabilidad"><span>Rentabilidad</span><b><span className="semaforo"><span className="punto" style={{ background: rent.punto }} />{rent.texto}</span></b></div>
-          </div>
-          <div className="alert-item" style={{ marginTop: 14 }}>
-            <span className={`alert-icon ${totales.rentabilidad === "RENTABLE" ? "verde" : totales.rentabilidad === "POCO_RENTABLE" ? "ambar" : "rojo"}`}>
-              <Icon name={totales.rentabilidad === "RENTABLE" ? "check" : "clock"} size={15} />
-            </span>
-            <div>
-              <strong>{totales.rentabilidad === "RENTABLE" ? "Pedido defendible" : "Revise el margen"}</strong>
-              <p>Use este resumen para decidir precio, modalidad y empaque antes de registrar el pedido.</p>
-            </div>
-          </div>
+          {!esCliente ? (
+            <>
+              <div className="fila-total-form">
+                <div><span>Peso facturable</span><b>{formatoNumero(totales.facturable)} kg</b></div>
+                <div><span>Costo envio</span><b>{formatoUSD(totales.costoEnvio)}</b></div>
+                <div><span>Subtotal</span><b>{formatoUSD(totales.subtotal)}</b></div>
+                <div><span>Total venta</span><b>{formatoUSD(totales.totalVenta)}</b></div>
+                <div><span>Utilidad ({formatoNumero(totales.margen)}%)</span>
+                  <b className={totales.utilidad >= 0 ? "num-positivo" : "num-negativo"}>{formatoUSD(totales.utilidad)}</b></div>
+                <div className="metric-rentabilidad"><span>Rentabilidad</span><b><span className="semaforo"><span className="punto" style={{ background: rent.punto }} />{rent.texto}</span></b></div>
+              </div>
+              <div className="alert-item" style={{ marginTop: 14 }}>
+                <span className={`alert-icon ${totales.rentabilidad === "RENTABLE" ? "verde" : totales.rentabilidad === "POCO_RENTABLE" ? "ambar" : "rojo"}`}>
+                  <Icon name={totales.rentabilidad === "RENTABLE" ? "check" : "clock"} size={15} />
+                </span>
+                <div>
+                  <strong>{totales.rentabilidad === "RENTABLE" ? "Pedido defendible" : "Revise el margen"}</strong>
+                  <p>Use este resumen para decidir precio, modalidad y empaque antes de registrar el pedido.</p>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="fila-total-form">
+                <div><span>Peso facturable</span><b>{formatoNumero(totales.facturable)} kg</b></div>
+                <div><span>Costo de productos</span><b>{formatoUSD(totales.totalVenta)}</b></div>
+                <div><span>Costo de envio estimado</span><b>{formatoUSD(totales.costoEnvio)}</b></div>
+                <div><span>Impuestos / gastos estimados</span><b>{formatoUSD(Number(form.gastosAdicionales) || 0)}</b></div>
+                <div><span>Total estimado</span><b>{formatoUSD(Number(totales.totalVenta) + Number(totales.costoEnvio) + (Number(form.gastosAdicionales) || 0))}</b></div>
+              </div>
+              <p className="texto-tenue" style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 6 }}>
+                <Icon name="clock" size={13} /> Los montos mostrados son estimaciones iniciales sujetas a revision logistica.
+              </p>
+            </>
+          )}
           {error && <p className="mensaje-info mensaje-error">{error}</p>}
           <div className="modal-acciones">
             <button className="btn btn-secundario" onClick={() => navigate("/pedidos")}>Cancelar</button>
             <button className="btn btn-azul" onClick={guardar} disabled={guardando}>
-              {guardando ? "Guardando..." : "Crear pedido"}
+              {guardando ? "Guardando..." : (esCliente ? "Enviar solicitud" : "Crear pedido")}
             </button>
           </div>
         </aside>

@@ -31,6 +31,9 @@ public class PedidoController {
         if (esOperador(principal)) {
             pedidos.forEach(this::ocultarFinanzas);
         }
+        if (esCliente(principal)) {
+            pedidos.forEach(this::ocultarRentabilidadCliente);
+        }
         return pedidos;
     }
 
@@ -41,6 +44,9 @@ public class PedidoController {
                 : pedidoService.obtenerDetalle(id);
         if (esOperador(principal)) {
             ocultarFinanzas(detalle);
+        }
+        if (esCliente(principal)) {
+            ocultarRentabilidadCliente(detalle);
         }
         return detalle;
     }
@@ -115,6 +121,28 @@ public class PedidoController {
         dto.getItems().forEach(item -> {
             item.setPrecioVenta(null);
             item.setSubtotalVenta(null);
+        });
+    }
+
+    /**
+     * Bloqueo absoluto de rentabilidad para el rol Cliente: nunca recibe utilidad, margen ni
+     * rentabilidad, ni el costo interno de la empresa (subtotal de costos / costo unitario),
+     * para que no pueda derivar el margen del negocio. Sí conserva su precio y total estimado.
+     */
+    private void ocultarRentabilidadCliente(PedidoResumenDTO dto) {
+        dto.setUtilidad(null);
+        dto.setMargenPct(null);
+        dto.setRentabilidad(null);
+    }
+
+    private void ocultarRentabilidadCliente(PedidoDetalleDTO dto) {
+        dto.setUtilidad(null);
+        dto.setMargenPct(null);
+        dto.setRentabilidad(null);
+        dto.setSubtotalProductos(null);
+        dto.getItems().forEach(item -> {
+            item.setCostoUnitario(null);
+            item.setSubtotalCosto(null);
         });
     }
 }

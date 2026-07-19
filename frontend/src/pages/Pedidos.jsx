@@ -322,6 +322,16 @@ export default function Pedidos() {
         </div>
       </div>
 
+      {esCliente && (
+        <div style={{ display: "flex", gap: 12, alignItems: "flex-start", background: "#e4f6f0", border: "1px solid #b8e6d5", borderRadius: 12, padding: "14px 18px", marginBottom: 16 }}>
+          <span style={{ color: "#0c7a5b", marginTop: 2 }}><Icon name="check" size={18} /></span>
+          <div>
+            <strong style={{ display: "block", color: "#0c7a5b" }}>Tu pedido ha sido recibido con exito.</strong>
+            <span style={{ color: "#33635a", fontSize: 14 }}>Nuestro equipo se encuentra verificando las tarifas aduaneras y de flete para emitir tu cotizacion final definitiva.</span>
+          </div>
+        </div>
+      )}
+
       {puedeGestionar && (
         <div className="toolbar-pedidos">
           {esAdmin && (
@@ -406,6 +416,22 @@ export default function Pedidos() {
             <strong>Direccion de entrega</strong>
             <p>{trackingDetalle.direccionEntrega || "Sin direccion de entrega registrada."}</p>
           </div>
+          {trackingDetalle.items && trackingDetalle.items.length > 0 && (
+            <div className="surface-card" style={{ marginTop: 12 }}>
+              <strong>Productos solicitados</strong>
+              <table className="tabla-pch" style={{ marginTop: 8 }}>
+                <thead><tr><th>Producto</th><th>Cantidad</th></tr></thead>
+                <tbody>
+                  {trackingDetalle.items.map((it, i) => (
+                    <tr key={i}><td>{it.productoNombre}</td><td>{it.cantidad}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <p style={{ marginTop: 12, fontSize: 13, color: "#5b6b7a", display: "flex", alignItems: "center", gap: 6 }}>
+            <Icon name="clock" size={13} /> Los montos mostrados son estimaciones iniciales sujetas a revision logistica.
+          </p>
         </div>
       )}
 
