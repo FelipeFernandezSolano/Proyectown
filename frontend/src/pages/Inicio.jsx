@@ -1,44 +1,45 @@
 import { Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import Icon from "../components/Icon";
+import RutaViaje from "../components/RutaViaje";
 import heroImg from "../assets/hero-importsmart.jpg";
-import slideMaritimo from "../assets/slide-maritimo.jpg";
-import slideAereo from "../assets/slide-aereo.jpg";
-import slideTerrestre from "../assets/slide-terrestre.jpg";
-import slideBodega from "../assets/slide-bodega.jpg";
-import nosotrosImg from "../assets/nosotros-importsmart.jpg";
+import slidePuerto from "../assets/slide-puerto-importsmart.png";
+import slideAereo from "../assets/slide-aereo-importsmart.png";
+import slideCamion from "../assets/slide-camion-importsmart.png";
+import slideBodega from "../assets/slide-bodega-importsmart.png";
+import nosotrosImg from "../assets/slide-oficina-importsmart.png";
 import "./Inicio.css";
 
-const WHATSAPP = "50688888888"; // <-- cambia por el numero real de la empresa
+const WHATSAPP = "50688888888"; // <-- cambia por el número real de la empresa
 
 const slides = [
-  { img: slideMaritimo, etiqueta: "Carga maritima", titulo: "Del puerto de origen hasta tu bodega", texto: "Coordinamos consolidacion, transito maritimo, aduana y entrega en una sola gestion." },
-  { img: slideAereo, etiqueta: "Carga aerea", titulo: "Importaciones aereas con tiempos visibles", texto: "Para carga urgente: comparamos modalidad, costo y fecha antes de comprometer la entrega." },
-  { img: slideTerrestre, etiqueta: "Entrega terrestre", titulo: "Ultima milla con trazabilidad", texto: "Del puerto a la puerta del cliente, con estados claros y documentacion ordenada." },
-  { img: slideBodega, etiqueta: "Bodega y almacenaje", titulo: "Recepcion, control y despacho", texto: "Paquetes, pesos y documentos organizados para evitar improvisaciones en la operacion." },
+  { img: slidePuerto, etiqueta: "Carga marítima", titulo: "Del puerto de origen hasta tu bodega", texto: "Coordinamos consolidación, tránsito marítimo, aduana y entrega en una sola gestión." },
+  { img: slideAereo, etiqueta: "Carga aérea", titulo: "Importaciones aéreas con tiempos visibles", texto: "Para carga urgente: comparamos modalidad, costo y fecha antes de comprometer la entrega." },
+  { img: slideCamion, etiqueta: "Entrega terrestre", titulo: "Última milla con trazabilidad", texto: "Del puerto a la puerta del cliente, con estados claros y documentación ordenada." },
+  { img: slideBodega, etiqueta: "Bodega y almacenaje", titulo: "Recepción, control y despacho", texto: "Paquetes, pesos y documentos organizados para evitar improvisaciones en la operación." },
 ];
 
 const servicios = [
-  { icono: "quote", titulo: "Cotizacion guiada", texto: "Solicitudes ordenadas para comparar modalidad, tiempos y condiciones antes de comprar." },
-  { icono: "exchange", titulo: "Comparacion aereo / maritimo", texto: "Evaluamos costo, peso facturable y tiempo de cada modalidad para decidir con datos." },
-  { icono: "calculator", titulo: "Peso volumetrico y envio", texto: "Calculo automatico de peso volumetrico, costo de envio y utilidad estimada por pedido." },
-  { icono: "timeline", titulo: "Seguimiento y linea de tiempo", texto: "Cada orden avanza por estados visibles: cotizado, comprado, transito, aduana y entrega." },
-  { icono: "chart", titulo: "Semaforo de rentabilidad", texto: "Clasificamos cada pedido en rentable, poco rentable o no rentable para decidir mejor." },
+  { icono: "quote", titulo: "Cotización guiada", texto: "Solicitudes ordenadas para comparar modalidad, tiempos y condiciones antes de comprar." },
+  { icono: "exchange", titulo: "Comparación aéreo / marítimo", texto: "Evaluamos costo, peso facturable y tiempo de cada modalidad para decidir con datos." },
+  { icono: "calculator", titulo: "Peso volumétrico y envío", texto: "Cálculo automático de peso volumétrico, costo de envío y utilidad estimada por pedido." },
+  { icono: "timeline", titulo: "Seguimiento y línea de tiempo", texto: "Cada orden avanza por estados visibles: cotizado, comprado, tránsito, aduana y entrega." },
+  { icono: "chart", titulo: "Semáforo de rentabilidad", texto: "Clasificamos cada pedido en rentable, poco rentable o no rentable para decidir mejor." },
   { icono: "user", titulo: "Portal para clientes", texto: "Tus clientes consultan pedidos, documentos y estado de entrega en una experiencia simple." },
 ];
 
 const proceso = [
   { n: "01", t: "Cotizado", d: "Se registra el producto, cantidades y modalidad para estimar costo y tiempo." },
-  { n: "02", t: "Aprobado", d: "El cliente aprueba la cotizacion y se coordina proveedor y transporte." },
+  { n: "02", t: "Aprobado", d: "El cliente aprueba la cotización y se coordina proveedor y transporte." },
   { n: "03", t: "Comprado", d: "Se ejecuta la compra internacional y se consolida la carga." },
-  { n: "04", t: "En bodega", d: "Recepcion, verificacion de paquetes, pesos y documentos." },
-  { n: "05", t: "En transito", d: "La carga viaja por via aerea o maritima con seguimiento." },
-  { n: "06", t: "En aduana", d: "Nacionalizacion, revision y liberacion de la mercaderia." },
+  { n: "04", t: "En bodega", d: "Recepción, verificación de paquetes, pesos y documentos." },
+  { n: "05", t: "En tránsito", d: "La carga viaja por vía aérea o marítima con seguimiento." },
+  { n: "06", t: "En aduana", d: "Nacionalización, revisión y liberación de la mercadería." },
   { n: "07", t: "Entregado", d: "Entrega final con documentos y cierre de la orden." },
 ];
 
 const stats = [
-  { valor: 6, sufijo: "+", label: "Anios de trayectoria" },
+  { valor: 6, sufijo: "+", label: "Años de trayectoria" },
   { valor: 50, sufijo: "+", label: "Clientes activos" },
   { valor: 300, sufijo: "+", label: "Pedidos gestionados" },
   { valor: 5, sufijo: "", label: "Etapas de seguimiento" },
@@ -89,15 +90,21 @@ function Contadores() {
   );
 }
 
+const SLIDE_MS = 6000;
+
 export default function Inicio() {
   const [slide, setSlide] = useState(0);
+  const [paused, setPaused] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   useReveal();
 
+  const goTo = (i) => setSlide((i + slides.length) % slides.length);
+
   useEffect(() => {
-    const t = setInterval(() => setSlide((s) => (s + 1) % slides.length), 6000);
-    return () => clearInterval(t);
-  }, []);
+    if (paused) return undefined;
+    const t = setTimeout(() => setSlide((s) => (s + 1) % slides.length), SLIDE_MS);
+    return () => clearTimeout(t);
+  }, [slide, paused]);
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll);
@@ -105,7 +112,7 @@ export default function Inicio() {
   }, []);
 
   const s = slides[slide];
-  const wa = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent("Hola ImportSmart, quiero cotizar una importacion.")}`;
+  const wa = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent("Hola ImportSmart, quiero cotizar una importación.")}`;
 
   return (
     <div className="is-landing">
@@ -122,14 +129,14 @@ export default function Inicio() {
           <a href="#contacto">Contacto</a>
         </nav>
         <div className="is-nav-cta">
-          <Link className="is-btn-ghost" to="/login">Iniciar sesion</Link>
+          <Link className="is-btn-ghost" to="/login">Iniciar sesión</Link>
           <a className="is-btn" href={wa} target="_blank" rel="noopener noreferrer">Cotizar ahora <Icon name="arrowRight" size={15} /></a>
         </div>
       </header>
 
       <div className="is-marquee"><div>
         {Array.from({ length: 2 }).map((_, k) => (
-          <span key={k}>Atencion guiada de importaciones &nbsp;·&nbsp; Cotizacion para clientes &nbsp;·&nbsp; Seguimiento en tiempo real &nbsp;·&nbsp; Aereo y maritimo &nbsp;·&nbsp; </span>
+          <span key={k}>Atención guiada de importaciones &nbsp;·&nbsp; Cotización para clientes &nbsp;·&nbsp; Seguimiento en tiempo real &nbsp;·&nbsp; Aéreo y marítimo &nbsp;·&nbsp; </span>
         ))}
       </div></div>
 
@@ -137,14 +144,14 @@ export default function Inicio() {
         <div className="is-hero-inner">
           <div className="is-hero-copy">
             <span className="is-kicker"><Icon name="ship" size={14} /> Importaciones bajo pedido en Costa Rica</span>
-            <h1>Tu operacion de importacion<br /><em>en las mejores manos.</em></h1>
-            <p>Cotiza, compara modalidades y acompana cada orden desde el proveedor hasta la entrega, con informacion clara para vos y para tu cliente.</p>
+            <h1>Tu operación de importación<br /><em>en las mejores manos.</em></h1>
+            <p>Cotiza, compara modalidades y acompaña cada orden desde el proveedor hasta la entrega, con información clara para vos y para tu cliente.</p>
             <div className="is-hero-actions">
-              <a className="is-btn is-btn-lg" href={wa} target="_blank" rel="noopener noreferrer"><Icon name="quote" size={16} /> Solicita tu cotizacion</a>
+              <a className="is-btn is-btn-lg" href={wa} target="_blank" rel="noopener noreferrer"><Icon name="quote" size={16} /> Solicita tu cotización</a>
               <Link className="is-btn-ghost is-btn-lg" to="/login">Entrar a la plataforma <Icon name="arrowRight" size={15} /></Link>
             </div>
             <ul className="is-checklist">
-              <li><Icon name="check" size={16} /> Comparamos aereo y maritimo antes de comprometer una fecha.</li>
+              <li><Icon name="check" size={16} /> Comparamos aéreo y marítimo antes de comprometer una fecha.</li>
               <li><Icon name="check" size={16} /> Seguimiento por etapas: del proveedor a la aduana y la entrega.</li>
               <li><Icon name="check" size={16} /> Cotizaciones y documentos en PDF para cada cliente.</li>
             </ul>
@@ -155,11 +162,35 @@ export default function Inicio() {
       <Contadores />
 
       <section className="is-band">
-        <div className="is-band-media">
+        <div
+          className="is-band-media"
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
+        >
+          <div className="is-band-progress">
+            {slides.map((item, i) => (
+              <button key={item.titulo} className="is-band-seg" onClick={() => goTo(i)} aria-label={`Ir a ${item.etiqueta}`}>
+                <span
+                  key={i === slide ? `active-${slide}` : `idle-${i}`}
+                  className={i < slide ? "done" : i === slide ? "active" : ""}
+                  style={i === slide ? { animationDuration: `${SLIDE_MS}ms`, animationPlayState: paused ? "paused" : "running" } : undefined}
+                />
+              </button>
+            ))}
+          </div>
+
           {slides.map((item, i) => (
             <img key={item.etiqueta} src={item.img} alt={item.etiqueta} className={i === slide ? "on" : ""} />
           ))}
           <div className="is-band-shade" />
+
+          <button className="is-band-arrow left" onClick={() => goTo(slide - 1)} aria-label="Slide anterior">
+            <Icon name="chevronLeft" size={20} />
+          </button>
+          <button className="is-band-arrow right" onClick={() => goTo(slide + 1)} aria-label="Siguiente slide">
+            <Icon name="chevronRight" size={20} />
+          </button>
+
           <div className="is-band-copy">
             <span className="is-tag">{s.etiqueta}</span>
             <h2>{s.titulo}</h2>
@@ -167,7 +198,7 @@ export default function Inicio() {
           </div>
           <div className="is-band-thumbs">
             {slides.map((item, i) => (
-              <button key={item.titulo} className={i === slide ? "on" : ""} onClick={() => setSlide(i)} aria-label={item.etiqueta}>
+              <button key={item.titulo} className={i === slide ? "on" : ""} onClick={() => goTo(i)} aria-label={item.etiqueta}>
                 <img src={item.img} alt="" />
               </button>
             ))}
@@ -177,7 +208,7 @@ export default function Inicio() {
 
       <section className="is-section is-servicios" id="servicios">
         <div className="is-head reveal">
-          <span className="is-kicker">Que hacemos</span>
+          <span className="is-kicker">Qué hacemos</span>
           <h2>Una herramienta comercial para vender importaciones con una experiencia profesional.</h2>
         </div>
         <div className="is-grid">
@@ -193,7 +224,7 @@ export default function Inicio() {
 
       <section className="is-section is-proceso" id="proceso">
         <div className="is-head reveal">
-          <span className="is-kicker">Como trabajamos</span>
+          <span className="is-kicker">Cómo trabajamos</span>
           <h2>Del proveedor al cliente con trazabilidad en cada etapa.</h2>
         </div>
         <div className="is-timeline">
@@ -207,15 +238,17 @@ export default function Inicio() {
         </div>
       </section>
 
+      <RutaViaje />
+
       <section className="is-section is-nosotros" id="nosotros">
         <div className="is-nos-media reveal"><img src={nosotrosImg} alt="Equipo ImportSmart" /></div>
         <div className="is-nos-copy reveal">
           <span className="is-kicker">Nosotros</span>
-          <h2>Ordenamos compras internacionales que ya existian.</h2>
-          <p>ImportSmart nacio apoyando comercios que compraban por pedido en Estados Unidos y Asia. El reto no era encontrar productos, sino ordenar solicitudes, tiempos, documentos y entregas para dar un servicio confiable.</p>
-          <p>Hoy centralizamos cotizaciones, pedidos, tracking, PDFs y alertas para que cada orden avance con informacion clara para el cliente y para el equipo operativo.</p>
+          <h2>Ordenamos compras internacionales que ya existían.</h2>
+          <p>ImportSmart nació apoyando comercios que compraban por pedido en Estados Unidos y Asia. El reto no era encontrar productos, sino ordenar solicitudes, tiempos, documentos y entregas para dar un servicio confiable.</p>
+          <p>Hoy centralizamos cotizaciones, pedidos, tracking, PDFs y alertas para que cada orden avance con información clara para el cliente y para el equipo operativo.</p>
           <div className="is-nos-chips">
-            <div><b>Aereo y maritimo</b><span>Dos modalidades comparables</span></div>
+            <div><b>Aéreo y marítimo</b><span>Dos modalidades comparables</span></div>
             <div><b>100% trazable</b><span>Estados y documentos</span></div>
           </div>
         </div>
@@ -223,11 +256,11 @@ export default function Inicio() {
 
       <section className="is-cta" id="contacto">
         <div className="is-cta-inner reveal">
-          <h2>Listo para importar con claridad?</h2>
-          <p>Escribinos y armamos tu primera cotizacion. Atencion guiada por WhatsApp.</p>
+          <h2>¿Listo para importar con claridad?</h2>
+          <p>Escribinos y armamos tu primera cotización. Atención guiada por WhatsApp.</p>
           <div className="is-cta-actions">
             <a className="is-btn is-btn-lg" href={wa} target="_blank" rel="noopener noreferrer"><Icon name="quote" size={16} /> Cotizar por WhatsApp</a>
-            <Link className="is-btn-ghost is-btn-lg is-ghost-light" to="/login">Iniciar sesion</Link>
+            <Link className="is-btn-ghost is-btn-lg is-ghost-light" to="/login">Iniciar sesión</Link>
           </div>
         </div>
       </section>
@@ -236,7 +269,7 @@ export default function Inicio() {
         <div className="is-footer-grid">
           <div className="is-footer-brand">
             <a className="is-brand" href="#top"><img src="/favicon.svg" alt="ImportSmart" /><span>Import<b>Smart</b></span></a>
-            <p>Plataforma para cotizar, planificar y controlar importaciones. Aereo y maritimo, del proveedor a la entrega.</p>
+            <p>Plataforma para cotizar, planificar y controlar importaciones. Aéreo y marítimo, del proveedor a la entrega.</p>
           </div>
           <div>
             <h5>Empresa</h5>
@@ -244,17 +277,17 @@ export default function Inicio() {
           </div>
           <div>
             <h5>Plataforma</h5>
-            <Link to="/login">Iniciar sesion</Link><a href={wa} target="_blank" rel="noopener noreferrer">Cotizar</a>
+            <Link to="/login">Iniciar sesión</Link><a href={wa} target="_blank" rel="noopener noreferrer">Cotizar</a>
           </div>
           <div>
             <h5>Contacto</h5>
             <a href={wa} target="_blank" rel="noopener noreferrer">WhatsApp</a>
             <a href="mailto:contacto@importsmart.com">contacto@importsmart.com</a>
-            <span>San Jose, Costa Rica</span>
+            <span>San José, Costa Rica</span>
           </div>
         </div>
         <div className="is-footer-base">
-          <span>&copy; {new Date().getFullYear()} ImportSmart. Proyecto academico - empresa ficticia.</span>
+          <span>&copy; {new Date().getFullYear()} ImportSmart. Proyecto académico - empresa ficticia.</span>
         </div>
       </footer>
 
