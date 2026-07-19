@@ -69,7 +69,13 @@ public class PedidoController {
     }
 
     @PutMapping("/{id}")
-    public PedidoDetalleDTO actualizar(@PathVariable Long id, @RequestBody PedidoRequest req) {
+    public PedidoDetalleDTO actualizar(@PathVariable Long id, @RequestBody PedidoRequest req,
+                                        @AuthenticationPrincipal UserPrincipal principal) {
+        if (esOperador(principal)) {
+            PedidoDetalleDTO detalle = pedidoService.actualizarLogistica(id, req);
+            ocultarFinanzas(detalle);
+            return detalle;
+        }
         return pedidoService.actualizar(id, req);
     }
 
@@ -126,9 +132,12 @@ public class PedidoController {
         dto.setTotalVenta(null);
         dto.setMontoPagado(null);
         dto.setSaldoPendiente(null);
+        dto.setSubtotalProductos(null);
         dto.getItems().forEach(item -> {
             item.setPrecioVenta(null);
             item.setSubtotalVenta(null);
+            item.setCostoUnitario(null);
+            item.setSubtotalCosto(null);
         });
     }
 

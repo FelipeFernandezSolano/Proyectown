@@ -103,6 +103,31 @@ public class PedidoService {
         return toDetalle(pedidoRepository.save(p));
     }
 
+    /**
+     * Edicion restringida para el Operador: solo puede investigar y completar medidas de
+     * logistica (paquetes, tipo de envio, direccion). Nunca toca items ni precios de venta,
+     * incluso si el request los incluye, para que un Operador no pueda alterar la cotizacion.
+     */
+    public PedidoDetalleDTO actualizarLogistica(Long id, PedidoRequest req) {
+        Pedido p = buscar(id);
+        p.setTipoEnvio(parseTipo(req.getTipoEnvio()));
+        String pais = req.getPais();
+        if ((pais == null || pais.isBlank()) && p.getCliente() != null) {
+            pais = p.getCliente().getPais();
+        }
+        p.setPais(pais);
+        p.setCiudad(req.getCiudad());
+        p.setCanton(req.getCanton());
+        String direccionEntrega = req.getDireccionEntrega();
+        if ((direccionEntrega == null || direccionEntrega.isBlank()) && p.getCliente() != null) {
+            direccionEntrega = p.getCliente().getDireccion();
+        }
+        p.setDireccionEntrega(direccionEntrega);
+
+        aplicarPaquetesYRecalcular(p, req.getPaquetes());
+        return toDetalle(pedidoRepository.save(p));
+    }
+
     public void eliminar(Long id) {
         pedidoRepository.deleteById(id);
     }
@@ -168,15 +193,21 @@ public class PedidoService {
             }
         }
 
-        // ---- Paquetes (peso volumetrico y facturable, RF-06/07) ----
+        p.setSubtotalProductos(subtotal);
+        p.setTotalVenta(totalVenta);
+        aplicarPaquetesYRecalcular(p, req.getPaquetes());
+    }
+
+    /** Recalcula paquetes, pesos, costo de envio y utilidad a partir del subtotal/venta ya asignados a p. */
+    private void aplicarPaquetesYRecalcular(Pedido p, List<PaqueteDTO> paquetesReq) {
         p.getPaquetes().clear();
         BigDecimal pesoRealTotal = BigDecimal.ZERO;
         BigDecimal pesoVolTotal = BigDecimal.ZERO;
         BigDecimal facturableTotal = BigDecimal.ZERO;
         BigDecimal costoEnvio = BigDecimal.ZERO;
-        if (req.getPaquetes() != null) {
+        if (paquetesReq != null) {
             int n = 1;
-            for (PaqueteDTO pk : req.getPaquetes()) {
+            for (PaqueteDTO pk : paquetesReq) {
                 BigDecimal vol = calculo.pesoVolumetrico(pk.getLargoCm(), pk.getAnchoCm(), pk.getAltoCm());
                 BigDecimal facturable = calculo.pesoFacturable(pk.getPesoRealKg(), vol);
                 BigDecimal real = nz(pk.getPesoRealKg());
@@ -203,11 +234,11 @@ public class PedidoService {
         }
 
         // ---- Costos, utilidad y semaforo ----
+        BigDecimal subtotal = nz(p.getSubtotalProductos());
+        BigDecimal totalVenta = nz(p.getTotalVenta());
         BigDecimal utilidad = calculo.utilidad(totalVenta, subtotal, costoEnvio, p.getGastosAdicionales());
         BigDecimal margen = calculo.margenPct(utilidad, totalVenta);
 
-        p.setSubtotalProductos(subtotal);
-        p.setTotalVenta(totalVenta);
         p.setPesoRealTotal(pesoRealTotal);
         p.setPesoVolumetricoTotal(pesoVolTotal);
         p.setPesoFacturableTotal(facturableTotal);
@@ -255,6 +286,7 @@ public class PedidoService {
         d.setRentabilidad(p.getRentabilidad() != null ? p.getRentabilidad().name() : null);
         d.setPesoFacturableTotal(p.getPesoFacturableTotal());
         d.setFechaPedido(p.getFechaPedido());
+        d.setPendienteInvestigacion(p.getPaquetes().isEmpty() || p.getItems().isEmpty());
         TarifaEnvio t = p.getTipoEnvio() != null ? tarifas.get(p.getTipoEnvio().name()) : null;
         d.setDiasEstimados(t != null ? t.getDiasEstimados() : null);
         return d;

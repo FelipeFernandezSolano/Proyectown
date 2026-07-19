@@ -27,4 +27,6 @@ public class PedidoResumenDTO {
     private BigDecimal pesoFacturableTotal;
     private Integer diasEstimados;
     private LocalDate fechaPedido;
+    /** true si al pedido le falta medidas de paquete o precio de items (necesita investigacion manual). */
+    private Boolean pendienteInvestigacion;
 }

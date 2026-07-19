@@ -48,6 +48,7 @@ function RutasApp() {
       <Route path="/dashboard" element={<ShellPrivado soloAdmin><Dashboard /></ShellPrivado>} />
       <Route path="/pedidos" element={<ShellPrivado><Pedidos /></ShellPrivado>} />
       <Route path="/nuevo-pedido" element={<ShellPrivado roles={["ADMINISTRADOR", "CLIENTE"]}><NuevoPedido /></ShellPrivado>} />
+      <Route path="/nuevo-pedido/:id" element={<ShellPrivado roles={["ADMINISTRADOR", "OPERADOR"]}><NuevoPedido /></ShellPrivado>} />
       <Route path="/simulador" element={<ShellPrivado><Simulador /></ShellPrivado>} />
       <Route path="/clientes" element={<ShellPrivado soloAdmin><Clientes /></ShellPrivado>} />
       <Route path="/productos" element={<ShellPrivado><Productos /></ShellPrivado>} />

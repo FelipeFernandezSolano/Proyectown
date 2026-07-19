@@ -70,12 +70,13 @@ public class SecurityConfig {
                 .requestMatchers("/api/dashboard/**").hasRole("ADMINISTRADOR")
                 .requestMatchers(HttpMethod.GET, "/api/cotizaciones/**").hasRole("ADMINISTRADOR")
                 .requestMatchers(HttpMethod.GET, "/api/clientes/**").hasRole("ADMINISTRADOR")
-                // Crear / editar / borrar (el OPERADOR no edita nada)
+                // Crear / editar / borrar (el OPERADOR solo edita medidas de logistica en pedidos)
                 .requestMatchers(HttpMethod.POST, "/api/pedidos/**").hasAnyRole("ADMINISTRADOR", "CLIENTE")
                 .requestMatchers(HttpMethod.POST, "/api/clientes/**", "/api/productos/**",
                         "/api/categorias/**").hasRole("ADMINISTRADOR")
-                .requestMatchers(HttpMethod.PUT, "/api/clientes/**", "/api/productos/**",
-                        "/api/pedidos/**").hasRole("ADMINISTRADOR")
+                .requestMatchers(HttpMethod.PUT, "/api/pedidos/**").hasAnyRole("ADMINISTRADOR", "OPERADOR")
+                .requestMatchers(HttpMethod.PUT, "/api/clientes/**", "/api/productos/**")
+                        .hasRole("ADMINISTRADOR")
                 .requestMatchers(HttpMethod.PATCH, "/api/pedidos/**").hasAnyRole("ADMINISTRADOR", "OPERADOR")
                 .requestMatchers(HttpMethod.DELETE, "/api/clientes/**", "/api/productos/**",
                         "/api/pedidos/**").hasRole("ADMINISTRADOR")

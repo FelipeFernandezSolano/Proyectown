@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
-  buscarClientes, getProductosActivos, crearPedido, crearCliente, crearProducto, getCategorias,
+  buscarClientes, getProductosActivos, crearPedido, actualizarPedido, getPedido,
+  crearCliente, crearProducto, getCategorias,
 } from "../api/endpoints";
 import { formatoUSD, formatoNumero, RENTABILIDAD } from "../utils/format";
 import Icon from "../components/Icon";
@@ -26,21 +27,35 @@ const clasificar = (m) => (m >= 25 ? "RENTABLE" : m >= 12 ? "POCO_RENTABLE" : "N
 
 export default function NuevoPedido() {
   const navigate = useNavigate();
+  const { id } = useParams();
+  const modoEdicion = !!id;
   const { usuario } = useAuth();
   const esCliente = usuario?.rol === "CLIENTE";
+  const esAdmin = usuario?.rol === "ADMINISTRADOR";
+  const esOperador = usuario?.rol === "OPERADOR";
+  // En edicion, el Operador solo completa medidas/logistica (nunca precio ni utilidad,
+  // igual que en el resto de la app); el Administrador si tiene el formulario completo.
+  const soloMedidas = modoEdicion && esOperador;
   const [clientes, setClientes] = useState([]);
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [clienteTexto, setClienteTexto] = useState("");
+  const [clienteNombreFijo, setClienteNombreFijo] = useState("");
+  const [codigoPedido, setCodigoPedido] = useState("");
   const [modalCliente, setModalCliente] = useState(null);
   const [modalProducto, setModalProducto] = useState(null);
   const [productoIndex, setProductoIndex] = useState(null);
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
+  const [cargandoPedido, setCargandoPedido] = useState(modoEdicion);
+  // Solo aplica al Cliente creando un pedido nuevo: si no conoce las medidas de la caja
+  // (ej. compra unos audifonos por internet), puede enviar la solicitud sin ellas y que
+  // el equipo de ImportSmart las investigue como si fuera su agente de compras.
+  const [sinMedidas, setSinMedidas] = useState(false);
   // ImportSmart no es una tienda: no tiene catálogo propio de cara al cliente. El Cliente
   // siempre describe qué necesita importar y nosotros lo cotizamos (el catálogo interno de
   // productos solo lo usa el Administrador para armar pedidos ya conocidos/recurrentes).
-  const cotizandoProductoNuevo = esCliente;
+  const cotizandoProductoNuevo = esCliente && !modoEdicion;
 
   const [form, setForm] = useState({
     clienteId: esCliente ? usuario.clienteId : "",
@@ -60,6 +75,37 @@ export default function NuevoPedido() {
     getProductosActivos().then(setProductos).catch(() => {});
     getCategorias().then(setCategorias).catch(() => {});
   }, [esCliente]);
+
+  useEffect(() => {
+    if (!modoEdicion) return;
+    setCargandoPedido(true);
+    getPedido(id)
+      .then((p) => {
+        setCodigoPedido(p.codigo || "");
+        setClienteNombreFijo(p.clienteNombre || "");
+        setForm({
+          clienteId: p.clienteId || "",
+          tipoEnvio: p.tipoEnvio || "AEREO",
+          descripcion: p.descripcion || "",
+          pais: p.pais || "",
+          ciudad: p.ciudad || "",
+          canton: p.canton || "",
+          direccionEntrega: p.direccionEntrega || "",
+          gastosAdicionales: p.gastosAdicionales || 0,
+        });
+        setItems((p.items || []).map((it) => ({
+          productoId: it.productoId, productoTexto: it.productoNombre,
+          cantidad: it.cantidad, costoUnitario: it.costoUnitario, precioVenta: it.precioVenta,
+        })));
+        setPaquetes((p.paquetes || []).length > 0 ? p.paquetes.map((pk) => ({
+          descripcion: pk.descripcion, largoCm: pk.largoCm, anchoCm: pk.anchoCm,
+          altoCm: pk.altoCm, pesoRealKg: pk.pesoRealKg,
+        })) : [{ descripcion: "Caja 1", largoCm: 0, anchoCm: 0, altoCm: 0, pesoRealKg: 0 }]);
+      })
+      .catch(() => setError("No se pudo cargar el pedido."))
+      .finally(() => setCargandoPedido(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const normalizar = (v) => String(v || "").trim().toLowerCase();
   const clienteExacto = clientes.find((c) => normalizar(c.nombre) === normalizar(clienteTexto));
@@ -187,16 +233,17 @@ export default function NuevoPedido() {
     const itemsValidos = items.filter((it) => it.productoId);
     if (cotizandoProductoNuevo) {
       if (!form.descripcion.trim()) { setError("Describe el producto que querés importar."); return; }
-    } else if (itemsValidos.length === 0) {
+    } else if (!soloMedidas && itemsValidos.length === 0) {
       setError("Agrega al menos un producto registrado.");
       return;
-    } else if (itemsValidos.some((it) => !(Number(it.cantidad) > 0) || !(Number(it.precioVenta) > 0))) {
+    } else if (!soloMedidas && itemsValidos.some((it) => !(Number(it.cantidad) > 0) || !(Number(it.precioVenta) > 0))) {
       setError("Completa cantidad y precio de venta en todos los productos.");
       return;
     }
-    if (paquetes.length === 0 || paquetes.some((pk) =>
+    const omitirMedidas = esCliente && !modoEdicion && sinMedidas;
+    if (!omitirMedidas && (paquetes.length === 0 || paquetes.some((pk) =>
       !pk.descripcion?.trim() || !(Number(pk.largoCm) > 0) || !(Number(pk.anchoCm) > 0)
-      || !(Number(pk.altoCm) > 0) || !(Number(pk.pesoRealKg) > 0))) {
+      || !(Number(pk.altoCm) > 0) || !(Number(pk.pesoRealKg) > 0)))) {
       setError("Completa descripción, dimensiones y peso real de todos los paquetes.");
       return;
     }
@@ -213,20 +260,24 @@ export default function NuevoPedido() {
         gastosAdicionales: Number(form.gastosAdicionales) || 0,
         // Inmutabilidad del estado inicial: el cliente siempre crea en "En revisión"
         // (el backend también lo fuerza, esto es defensa en profundidad desde el front).
-        ...(esCliente ? { estadoNombre: "En revisión" } : {}),
+        ...(esCliente && !modoEdicion ? { estadoNombre: "En revisión" } : {}),
         items: cotizandoProductoNuevo ? [] : itemsValidos.map((it) => ({
           productoId: Number(it.productoId), cantidad: Number(it.cantidad) || 1,
           costoUnitario: Number(it.costoUnitario), precioVenta: Number(it.precioVenta),
         })),
-        paquetes: paquetes.map((pk) => ({
+        paquetes: omitirMedidas ? [] : paquetes.map((pk) => ({
           descripcion: pk.descripcion, largoCm: Number(pk.largoCm), anchoCm: Number(pk.anchoCm),
           altoCm: Number(pk.altoCm), pesoRealKg: Number(pk.pesoRealKg),
         })),
       };
-      await crearPedido(dto);
+      if (modoEdicion) {
+        await actualizarPedido(id, dto);
+      } else {
+        await crearPedido(dto);
+      }
       navigate("/pedidos");
     } catch (err) {
-      setError(err.response?.data?.mensaje || "No se pudo crear el pedido.");
+      setError(err.response?.data?.mensaje || "No se pudo guardar el pedido.");
     } finally {
       setGuardando(false);
     }
@@ -234,19 +285,35 @@ export default function NuevoPedido() {
 
   const rent = RENTABILIDAD[totales.rentabilidad];
 
+  if (cargandoPedido) {
+    return <div className="contenido"><div className="estado-vacio">Cargando pedido...</div></div>;
+  }
+
   return (
     <div className="contenido">
       <div className="page-header">
         <div>
-          <span className="page-kicker"><Icon name="plus" size={13} /> {esCliente ? "Solicitud de cotización" : "Cotización operativa"}</span>
-          <h2>{esCliente ? "Solicitar cotización de importación" : "Nuevo pedido de importación"}</h2>
-          <p className="subtitulo-pagina">{esCliente
-            ? "Completa los datos de tu carga desde China hasta Costa Rica para recibir una pre-cotización estimada."
-            : "Calcula peso volumétrico, envío, utilidad y rentabilidad antes de aprobar la compra."}</p>
+          <span className="page-kicker"><Icon name="plus" size={13} /> {
+            modoEdicion ? `Completando ${codigoPedido}` : esCliente ? "Solicitud de cotización" : "Cotización operativa"
+          }</span>
+          <h2>{
+            modoEdicion
+              ? (soloMedidas ? "Completar medidas del pedido" : "Completar cotización del pedido")
+              : esCliente ? "Solicitar cotización de importación" : "Nuevo pedido de importación"
+          }</h2>
+          <p className="subtitulo-pagina">{
+            modoEdicion
+              ? (soloMedidas
+                ? "Investigá y cargá las medidas y el peso real de la caja para que se pueda calcular el envío."
+                : "Completá los datos que falten (producto, precio, medidas) para poder cotizarle al cliente.")
+              : esCliente
+                ? "Completa los datos de tu carga desde China hasta Costa Rica para recibir una pre-cotización estimada."
+                : "Calcula peso volumétrico, envío, utilidad y rentabilidad antes de aprobar la compra."
+          }</p>
         </div>
       </div>
 
-      {esCliente && (
+      {esCliente && !modoEdicion && (
         <div className="card" style={{ marginBottom: 18 }}>
           <p className="texto-tenue" style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <Icon name="quote" size={15} /> ImportSmart no vende productos propios: contanos qué necesitás importar y nosotros te armamos la cotización de envío.
@@ -262,6 +329,8 @@ export default function NuevoPedido() {
               <div className="campo"><label>Empresa cliente *</label>
                 {esCliente ? (
                   <input value={usuario.nombre} disabled />
+                ) : modoEdicion ? (
+                  <input value={clienteNombreFijo} disabled />
                 ) : (
                   <>
                     <AutocompleteInput
@@ -294,13 +363,15 @@ export default function NuevoPedido() {
                   <option value="AEREO">Aéreo</option>
                   <option value="MARITIMO">Marítimo</option>
                 </select></div>
-              {!esCliente && (
+              {!esCliente && !soloMedidas && (
                 <div className="campo"><label>Gastos adicionales (USD)</label>
                   <input type="number" step="0.01" min="0" value={form.gastosAdicionales} onChange={(e) => setForm({ ...form, gastosAdicionales: e.target.value })} /></div>
               )}
               <div className="campo" style={{ gridColumn: "1 / -1" }}>
-                <label>{cotizandoProductoNuevo ? "¿Qué producto necesitás importar? *" : "Descripción (opcional)"}</label>
-                {cotizandoProductoNuevo ? (
+                <label>{modoEdicion ? "Qué pidió el cliente" : cotizandoProductoNuevo ? "¿Qué producto necesitás importar? *" : "Descripción (opcional)"}</label>
+                {modoEdicion ? (
+                  <textarea rows={3} value={form.descripcion} disabled />
+                ) : cotizandoProductoNuevo ? (
                   <>
                     <p className="texto-tenue" style={{ margin: "0 0 8px" }}>
                       Contanos qué es, para qué lo vas a usar y cualquier detalle que ayude a identificarlo (marca,
@@ -347,7 +418,7 @@ export default function NuevoPedido() {
             </div>
           </div>
 
-          {!cotizandoProductoNuevo && (
+          {!cotizandoProductoNuevo && !soloMedidas && (
           <div className="card">
             <h3 className="card-titulo"><span className="icono-titulo"><Icon name="tag" size={16} /></span>2. Productos del pedido</h3>
             {items.length === 0 && <div className="estado-vacio">Agrega productos para calcular venta, costos y utilidad.</div>}
@@ -400,31 +471,50 @@ export default function NuevoPedido() {
           )}
 
           <div className="card">
-            <h3 className="card-titulo"><span className="icono-titulo"><Icon name="box" size={16} /></span>{cotizandoProductoNuevo ? "2" : "3"}. Paquetes y peso</h3>
-            {esCliente && (
-              <p className="texto-tenue" style={{ marginBottom: 12 }}>
-                Medí el producto o la caja tal como se va a enviar (largo, ancho y alto en centímetros) y pesalo en una
-                báscula. Con esos datos calculamos el peso que se cobra en el envío: si el paquete es grande pero
-                liviano, a veces se cobra más por el espacio que ocupa que por su peso real — por eso pedimos ambos.
+            <h3 className="card-titulo"><span className="icono-titulo"><Icon name="box" size={16} /></span>{(cotizandoProductoNuevo || soloMedidas) ? "2" : "3"}. Paquetes y peso</h3>
+            {esCliente && !modoEdicion && (
+              <>
+                <p className="texto-tenue" style={{ marginBottom: 12 }}>
+                  Medí el producto o la caja tal como se va a enviar (largo, ancho y alto en centímetros) y pesalo en una
+                  báscula. Con esos datos calculamos el peso que se cobra en el envío: si el paquete es grande pero
+                  liviano, a veces se cobra más por el espacio que ocupa que por su peso real — por eso pedimos ambos.
+                </p>
+                <label className="checkbox-linea" style={{ marginBottom: 12 }}>
+                  <input
+                    type="checkbox"
+                    checked={sinMedidas}
+                    onChange={(e) => setSinMedidas(e.target.checked)}
+                  />
+                  No tengo las medidas todavía (ej. lo voy a comprar en una tienda en línea) — que ImportSmart las investigue
+                </label>
+              </>
+            )}
+            {soloMedidas && (
+              <p className="texto-tenue" style={{ marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                <Icon name="clock" size={13} /> El cliente no tenía las medidas de la caja. Investigá el producto (ficha técnica, tienda en línea, etc.) y cargá las medidas reales acá.
               </p>
             )}
-            {paquetes.map((pk, i) => (
-              <div key={i} className="form-row">
-                <div className="campo" style={{ flex: 1, minWidth: 130 }}><label>Descripción</label>
-                  <input required value={pk.descripcion} onChange={(e) => setPaquete(i, "descripcion", e.target.value)} /></div>
-                <div className="campo" style={{ width: 90 }}><label>Largo</label>
-                  <input type="number" step="0.1" min="0.1" required value={pk.largoCm} onChange={(e) => setPaquete(i, "largoCm", e.target.value)} /></div>
-                <div className="campo" style={{ width: 90 }}><label>Ancho</label>
-                  <input type="number" step="0.1" min="0.1" required value={pk.anchoCm} onChange={(e) => setPaquete(i, "anchoCm", e.target.value)} /></div>
-                <div className="campo" style={{ width: 90 }}><label>Alto</label>
-                  <input type="number" step="0.1" min="0.1" required value={pk.altoCm} onChange={(e) => setPaquete(i, "altoCm", e.target.value)} /></div>
-                <div className="campo" style={{ width: 100 }}><label>Peso real</label>
-                  <input type="number" step="0.01" min="0.01" required value={pk.pesoRealKg} onChange={(e) => setPaquete(i, "pesoRealKg", e.target.value)} /></div>
-                <span className="metric-box" style={{ padding: "8px 10px" }}><span>Vol.</span><b>{formatoNumero(pesoVol(pk.largoCm, pk.anchoCm, pk.altoCm))} kg</b></span>
-                <button className="btn-icono" onClick={() => delPaquete(i)}><Icon name="trash" size={16} /></button>
-              </div>
-            ))}
-            <button className="btn btn-secundario mini-boton" onClick={addPaquete}><Icon name="plus" size={14} />Agregar paquete</button>
+            {(!esCliente || modoEdicion || !sinMedidas) && (
+              <>
+                {paquetes.map((pk, i) => (
+                  <div key={i} className="form-row">
+                    <div className="campo" style={{ flex: 1, minWidth: 130 }}><label>Descripción</label>
+                      <input required value={pk.descripcion} onChange={(e) => setPaquete(i, "descripcion", e.target.value)} /></div>
+                    <div className="campo" style={{ width: 90 }}><label>Largo</label>
+                      <input type="number" step="0.1" min="0.1" required value={pk.largoCm} onChange={(e) => setPaquete(i, "largoCm", e.target.value)} /></div>
+                    <div className="campo" style={{ width: 90 }}><label>Ancho</label>
+                      <input type="number" step="0.1" min="0.1" required value={pk.anchoCm} onChange={(e) => setPaquete(i, "anchoCm", e.target.value)} /></div>
+                    <div className="campo" style={{ width: 90 }}><label>Alto</label>
+                      <input type="number" step="0.1" min="0.1" required value={pk.altoCm} onChange={(e) => setPaquete(i, "altoCm", e.target.value)} /></div>
+                    <div className="campo" style={{ width: 100 }}><label>Peso real</label>
+                      <input type="number" step="0.01" min="0.01" required value={pk.pesoRealKg} onChange={(e) => setPaquete(i, "pesoRealKg", e.target.value)} /></div>
+                    <span className="metric-box" style={{ padding: "8px 10px" }}><span>Vol.</span><b>{formatoNumero(pesoVol(pk.largoCm, pk.anchoCm, pk.altoCm))} kg</b></span>
+                    <button className="btn-icono" onClick={() => delPaquete(i)}><Icon name="trash" size={16} /></button>
+                  </div>
+                ))}
+                <button className="btn btn-secundario mini-boton" onClick={addPaquete}><Icon name="plus" size={14} />Agregar paquete</button>
+              </>
+            )}
             {!esCliente && (
               <p className="texto-tenue nota-tarifa">
                 Aéreo: peso volumétrico = m3 x 168; kg real a $20 y excedente volumétrico a $18.
@@ -436,7 +526,17 @@ export default function NuevoPedido() {
 
         <aside className="card summary-sidebar">
           <h3 className="card-titulo"><span className="icono-titulo"><Icon name="calculator" size={16} /></span>Resumen de cotización</h3>
-          {!esCliente ? (
+          {soloMedidas ? (
+            <>
+              <div className="fila-total-form">
+                <div><span>Peso facturable</span><b>{formatoNumero(totales.facturable)} kg</b></div>
+                <div><span>Costo de envío estimado</span><b>{formatoUSD(totales.costoEnvio)}</b></div>
+              </div>
+              <p className="texto-tenue" style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 6 }}>
+                <Icon name="clock" size={13} /> El precio de venta lo define el Administrador; tu parte es dejar las medidas correctas.
+              </p>
+            </>
+          ) : !esCliente ? (
             <>
               <div className="fila-total-form">
                 <div><span>Peso facturable</span><b>{formatoNumero(totales.facturable)} kg</b></div>
@@ -453,32 +553,20 @@ export default function NuevoPedido() {
                 </span>
                 <div>
                   <strong>{totales.rentabilidad === "RENTABLE" ? "Pedido defendible" : "Revise el margen"}</strong>
-                  <p>Use este resumen para decidir precio, modalidad y empaque antes de registrar el pedido.</p>
+                  <p>Use este resumen para decidir precio, modalidad y empaque antes de {modoEdicion ? "guardar" : "registrar"} el pedido.</p>
                 </div>
               </div>
-            </>
-          ) : cotizandoProductoNuevo ? (
-            <>
-              <div className="fila-total-form">
-                <div><span>Peso facturable</span><b>{formatoNumero(totales.facturable)} kg</b></div>
-                <div><span>Costo de envío estimado</span><b>{formatoUSD(totales.costoEnvio)}</b></div>
-                <div><span>Precio del producto</span><b>Por cotizar</b></div>
-                <div><span>Total estimado</span><b>Por cotizar</b></div>
-              </div>
-              <p className="texto-tenue" style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 6 }}>
-                <Icon name="clock" size={13} /> Como el producto no está en catálogo, nuestro equipo te va a confirmar el precio total tras revisar la solicitud.
-              </p>
             </>
           ) : (
             <>
               <div className="fila-total-form">
-                <div><span>Peso facturable</span><b>{formatoNumero(totales.facturable)} kg</b></div>
-                <div><span>Costo de productos</span><b>{formatoUSD(totales.totalVenta)}</b></div>
-                <div><span>Costo de envío estimado</span><b>{formatoUSD(totales.costoEnvio)}</b></div>
-                <div><span>Total estimado</span><b>{formatoUSD(Number(totales.totalVenta) + Number(totales.costoEnvio))}</b></div>
+                <div><span>Peso facturable</span><b>{sinMedidas ? "Por medir" : `${formatoNumero(totales.facturable)} kg`}</b></div>
+                <div><span>Costo de envío estimado</span><b>{sinMedidas ? "Por cotizar" : formatoUSD(totales.costoEnvio)}</b></div>
+                <div><span>Precio del producto</span><b>Por cotizar</b></div>
+                <div><span>Total estimado</span><b>Por cotizar</b></div>
               </div>
               <p className="texto-tenue" style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 6 }}>
-                <Icon name="clock" size={13} /> Los montos mostrados son estimaciones iniciales sujetas a revisión logística.
+                <Icon name="clock" size={13} /> Como el producto no está en catálogo, nuestro equipo te va a confirmar {sinMedidas ? "las medidas y " : ""}el precio total tras revisar la solicitud.
               </p>
             </>
           )}
@@ -486,7 +574,7 @@ export default function NuevoPedido() {
           <div className="modal-acciones">
             <button className="btn btn-secundario" onClick={() => navigate("/pedidos")}>Cancelar</button>
             <button className="btn btn-azul" onClick={guardar} disabled={guardando}>
-              {guardando ? "Guardando..." : (esCliente ? "Enviar solicitud" : "Crear pedido")}
+              {guardando ? "Guardando..." : modoEdicion ? "Guardar cambios" : (esCliente ? "Enviar solicitud" : "Crear pedido")}
             </button>
           </div>
         </aside>

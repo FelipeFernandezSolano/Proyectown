@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import {
   getPedidos, getPedido, getEstados, cambiarEstadoPedido, eliminarPedido,
   descargarCotizacionCliente, descargarCotizacionInterna, descargarBlob, getTipoCambio,
@@ -133,6 +133,7 @@ function TrackingStepper({ pedido, editable, onCambiarEstado }) {
 
 export default function Pedidos() {
   const { usuario } = useAuth();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const esAdmin = usuario?.rol === "ADMINISTRADOR";
   const esCliente = usuario?.rol === "CLIENTE";
@@ -510,6 +511,14 @@ export default function Pedidos() {
               >
                 <td>
                   <b>{p.codigo}</b>
+                  {puedeGestionar && p.pendienteInvestigacion && (
+                    <span
+                      className="badge-pendiente-investigacion"
+                      title="Falta investigar medidas de la caja o precio de importacion"
+                    >
+                      <Icon name="search" size={11} /> Por investigar
+                    </span>
+                  )}
                   <button
                     type="button"
                     className="btn-copiar-id"
@@ -559,7 +568,14 @@ export default function Pedidos() {
       {detalle && (
         <div className="modal-fondo" onClick={() => setDetalle(null)}>
           <div className="modal-caja modal-ancha" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 820 }}>
-            <h3>{detalle.codigo} - {detalle.clienteNombre}</h3>
+            <h3>
+              {detalle.codigo} - {detalle.clienteNombre}
+              {puedeGestionar && ((detalle.paquetes || []).length === 0 || (detalle.items || []).length === 0) && (
+                <span className="badge-pendiente-investigacion" title="Falta investigar medidas de la caja o precio de importacion">
+                  <Icon name="search" size={11} /> Por investigar
+                </span>
+              )}
+            </h3>
             <p className="texto-tenue">
               <span className="chip-envio"><Icon name={detalle.tipoEnvio === "MARITIMO" ? "ship" : "plane"} size={13} />{detalle.tipoEnvio}</span>
               {"  "}~{detalle.diasEstimados} dias - Estado actual: <b>{detalle.estado}</b>
@@ -703,6 +719,11 @@ export default function Pedidos() {
             )}
 
             <div className="modal-acciones">
+              {puedeGestionar && (
+                <button className="btn btn-secundario" onClick={() => navigate(`/nuevo-pedido/${detalle.id}`)}>
+                  <Icon name="edit" size={15} />{esOperador ? "Completar medidas" : "Completar cotización"}
+                </button>
+              )}
               {esAdmin && (
                 <>
                   <button className="btn btn-secundario" onClick={() => descargarPdfCliente(detalle.id)}><Icon name="quote" size={15} />PDF cliente</button>
