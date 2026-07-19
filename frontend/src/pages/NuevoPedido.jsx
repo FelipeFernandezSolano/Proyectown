@@ -37,6 +37,10 @@ export default function NuevoPedido() {
   const [productoIndex, setProductoIndex] = useState(null);
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
+  // Solo aplica al Cliente: "catalogo" = elige productos que ya vendemos (precio fijo del catalogo);
+  // "cotizar" = producto que no tenemos, el cliente describe que necesita y nosotros cotizamos.
+  const [modoPedido, setModoPedido] = useState("catalogo");
+  const cotizandoProductoNuevo = esCliente && modoPedido === "cotizar";
 
   const [form, setForm] = useState({ clienteId: esCliente ? usuario.clienteId : "", tipoEnvio: "AEREO", descripcion: "", direccionEntrega: "", gastosAdicionales: 0 });
   const [items, setItems] = useState([]);
@@ -168,8 +172,12 @@ export default function NuevoPedido() {
     if (!form.clienteId) { setError("Selecciona una empresa cliente."); return; }
     if (!form.direccionEntrega.trim()) { setError("Ingresa la direccion de entrega."); return; }
     const itemsValidos = items.filter((it) => it.productoId);
-    if (itemsValidos.length === 0) { setError("Agrega al menos un producto registrado."); return; }
-    if (itemsValidos.some((it) => !(Number(it.cantidad) > 0) || !(Number(it.precioVenta) > 0))) {
+    if (cotizandoProductoNuevo) {
+      if (!form.descripcion.trim()) { setError("Describe el producto que queres importar."); return; }
+    } else if (itemsValidos.length === 0) {
+      setError("Agrega al menos un producto registrado.");
+      return;
+    } else if (itemsValidos.some((it) => !(Number(it.cantidad) > 0) || !(Number(it.precioVenta) > 0))) {
       setError("Completa cantidad y precio de venta en todos los productos.");
       return;
     }
@@ -190,7 +198,7 @@ export default function NuevoPedido() {
         // Inmutabilidad del estado inicial: el cliente siempre crea en "En revisión"
         // (el backend tambien lo fuerza, esto es defensa en profundidad desde el front).
         ...(esCliente ? { estadoNombre: "En revisión" } : {}),
-        items: itemsValidos.map((it) => ({
+        items: cotizandoProductoNuevo ? [] : itemsValidos.map((it) => ({
           productoId: Number(it.productoId), cantidad: Number(it.cantidad) || 1,
           costoUnitario: Number(it.costoUnitario), precioVenta: Number(it.precioVenta),
         })),
@@ -221,6 +229,36 @@ export default function NuevoPedido() {
             : "Calcula peso volumetrico, envio, utilidad y rentabilidad antes de aprobar la compra."}</p>
         </div>
       </div>
+
+      {esCliente && (
+        <div className="card" style={{ marginBottom: 18 }}>
+          <h3 className="card-titulo"><span className="icono-titulo"><Icon name="box" size={16} /></span>¿Qué querés importar?</h3>
+          <div className="modo-pedido-opciones">
+            <button
+              type="button"
+              className={"modo-pedido-opcion" + (modoPedido === "catalogo" ? " activo" : "")}
+              onClick={() => setModoPedido("catalogo")}
+            >
+              <Icon name="tag" size={18} />
+              <div>
+                <strong>Ya tienen el producto</strong>
+                <p>Elegís de nuestro catálogo, con precio y peso ya definidos.</p>
+              </div>
+            </button>
+            <button
+              type="button"
+              className={"modo-pedido-opcion" + (modoPedido === "cotizar" ? " activo" : "")}
+              onClick={() => setModoPedido("cotizar")}
+            >
+              <Icon name="quote" size={18} />
+              <div>
+                <strong>No está en el catálogo</strong>
+                <p>Describís el producto y nosotros te cotizamos el envío.</p>
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="split-workspace">
         <div className="stack">
@@ -262,21 +300,36 @@ export default function NuevoPedido() {
                   <option value="AEREO">Aereo</option>
                   <option value="MARITIMO">Maritimo</option>
                 </select></div>
-              <div className="campo"><label>Gastos adicionales (USD)</label>
-                <input type="number" step="0.01" min="0" value={form.gastosAdicionales} onChange={(e) => setForm({ ...form, gastosAdicionales: e.target.value })} /></div>
-              <div className="campo" style={{ gridColumn: "1 / -1" }}><label>Descripcion (opcional)</label>
-                <input value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} placeholder="Se genera con los productos si se deja vacio" /></div>
+              {!esCliente && (
+                <div className="campo"><label>Gastos adicionales (USD)</label>
+                  <input type="number" step="0.01" min="0" value={form.gastosAdicionales} onChange={(e) => setForm({ ...form, gastosAdicionales: e.target.value })} /></div>
+              )}
+              <div className="campo" style={{ gridColumn: "1 / -1" }}>
+                <label>{cotizandoProductoNuevo ? "¿Qué producto necesitás? *" : "Descripción (opcional)"}</label>
+                {cotizandoProductoNuevo ? (
+                  <textarea
+                    rows={3}
+                    required
+                    value={form.descripcion}
+                    onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
+                    placeholder="Nombre del producto, características, uso, marca o modelo si aplica..."
+                  />
+                ) : (
+                  <input value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} placeholder="Se genera con los productos si se deja vacío" />
+                )}
+              </div>
               <div className="campo" style={{ gridColumn: "1 / -1" }}><label>Direccion de entrega *</label>
                 <textarea
                   rows={3}
                   required
                   value={form.direccionEntrega}
                   onChange={(e) => setForm({ ...form, direccionEntrega: e.target.value })}
-                  placeholder="Provincia, canton, distrito y senas exactas"
+                  placeholder="Provincia, cantón, distrito y señas exactas"
                 /></div>
             </div>
           </div>
 
+          {!cotizandoProductoNuevo && (
           <div className="card">
             <h3 className="card-titulo"><span className="icono-titulo"><Icon name="tag" size={16} /></span>2. Productos del pedido</h3>
             {items.length === 0 && <div className="estado-vacio">Agrega productos para calcular venta, costos y utilidad.</div>}
@@ -315,19 +368,24 @@ export default function NuevoPedido() {
                 </div>
                 <div className="campo" style={{ width: 90 }}><label>Cant.</label>
                   <input type="number" min="1" required value={it.cantidad} onChange={(e) => setItem(i, "cantidad", e.target.value)} /></div>
-                <div className="campo" style={{ width: 130 }}><label>Venta USD</label>
-                  <input type="number" step="0.01" min="0.01" required value={it.precioVenta ?? ""} onChange={(e) => setItem(i, "precioVenta", e.target.value)} /></div>
+                <div className="campo" style={{ width: 130 }}><label>{esCliente ? "Precio" : "Venta USD"}</label>
+                  {esCliente ? (
+                    <input value={it.precioVenta != null ? formatoUSD(it.precioVenta) : "-"} disabled />
+                  ) : (
+                    <input type="number" step="0.01" min="0.01" required value={it.precioVenta ?? ""} onChange={(e) => setItem(i, "precioVenta", e.target.value)} />
+                  )}</div>
                 <button className="btn-icono" onClick={() => delItem(i)}><Icon name="trash" size={16} /></button>
               </div>
             ))}
             <button className="btn btn-secundario mini-boton" onClick={addItem}><Icon name="plus" size={14} />Agregar producto</button>
           </div>
+          )}
 
           <div className="card">
-            <h3 className="card-titulo"><span className="icono-titulo"><Icon name="box" size={16} /></span>3. Paquetes y peso</h3>
+            <h3 className="card-titulo"><span className="icono-titulo"><Icon name="box" size={16} /></span>{cotizandoProductoNuevo ? "2" : "3"}. Paquetes y peso</h3>
             {paquetes.map((pk, i) => (
               <div key={i} className="form-row">
-                <div className="campo" style={{ flex: 1, minWidth: 130 }}><label>Descripcion</label>
+                <div className="campo" style={{ flex: 1, minWidth: 130 }}><label>Descripción</label>
                   <input required value={pk.descripcion} onChange={(e) => setPaquete(i, "descripcion", e.target.value)} /></div>
                 <div className="campo" style={{ width: 90 }}><label>Largo</label>
                   <input type="number" step="0.1" min="0.1" required value={pk.largoCm} onChange={(e) => setPaquete(i, "largoCm", e.target.value)} /></div>
@@ -344,8 +402,8 @@ export default function NuevoPedido() {
             <button className="btn btn-secundario mini-boton" onClick={addPaquete}><Icon name="plus" size={14} />Agregar paquete</button>
             {!esCliente && (
               <p className="texto-tenue nota-tarifa">
-                Aereo: peso volumetrico = m3 x 168; kg real a $20 y excedente volumetrico a $18.
-                Maritimo: m3 x $850.
+                Aéreo: peso volumétrico = m3 x 168; kg real a $20 y excedente volumétrico a $18.
+                Marítimo: m3 x $850.
               </p>
             )}
           </div>
@@ -374,17 +432,28 @@ export default function NuevoPedido() {
                 </div>
               </div>
             </>
+          ) : cotizandoProductoNuevo ? (
+            <>
+              <div className="fila-total-form">
+                <div><span>Peso facturable</span><b>{formatoNumero(totales.facturable)} kg</b></div>
+                <div><span>Costo de envío estimado</span><b>{formatoUSD(totales.costoEnvio)}</b></div>
+                <div><span>Precio del producto</span><b>Por cotizar</b></div>
+                <div><span>Total estimado</span><b>Por cotizar</b></div>
+              </div>
+              <p className="texto-tenue" style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 6 }}>
+                <Icon name="clock" size={13} /> Como el producto no está en catálogo, nuestro equipo te va a confirmar el precio total tras revisar la solicitud.
+              </p>
+            </>
           ) : (
             <>
               <div className="fila-total-form">
                 <div><span>Peso facturable</span><b>{formatoNumero(totales.facturable)} kg</b></div>
                 <div><span>Costo de productos</span><b>{formatoUSD(totales.totalVenta)}</b></div>
-                <div><span>Costo de envio estimado</span><b>{formatoUSD(totales.costoEnvio)}</b></div>
-                <div><span>Impuestos / gastos estimados</span><b>{formatoUSD(Number(form.gastosAdicionales) || 0)}</b></div>
-                <div><span>Total estimado</span><b>{formatoUSD(Number(totales.totalVenta) + Number(totales.costoEnvio) + (Number(form.gastosAdicionales) || 0))}</b></div>
+                <div><span>Costo de envío estimado</span><b>{formatoUSD(totales.costoEnvio)}</b></div>
+                <div><span>Total estimado</span><b>{formatoUSD(Number(totales.totalVenta) + Number(totales.costoEnvio))}</b></div>
               </div>
               <p className="texto-tenue" style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 6 }}>
-                <Icon name="clock" size={13} /> Los montos mostrados son estimaciones iniciales sujetas a revision logistica.
+                <Icon name="clock" size={13} /> Los montos mostrados son estimaciones iniciales sujetas a revisión logística.
               </p>
             </>
           )}

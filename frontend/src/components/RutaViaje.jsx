@@ -2,11 +2,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Globe from "react-globe.gl";
 import * as THREE from "three";
 import Icon from "./Icon";
+import earthTexture from "../assets/earth-day.jpg";
 import "./RutaViaje.css";
 
-// Textura realista de la Tierra: tierra en verde/marron y oceano en azul (three-globe).
-// Para uso 100% offline: descarga este JPG a src/assets/earth-day.jpg e importalo local.
-const EARTH_TEXTURE = "https://unpkg.com/three-globe/example/img/earth-day.jpg";
+// Textura realista de la Tierra: tierra en verde/marron y oceano en azul (three-globe),
+// empaquetada localmente para que no dependa de una CDN externa.
+const EARTH_TEXTURE = earthTexture;
 
 const PATH_ICONO = {
   ship: "M4 10V5h5V3h6v2h5v5l-8 3zM3 13l9 3 9-3v2l-1 5H4l-1-5zm2 5h14l.4-2L12 18l-7.4-2z",
@@ -14,27 +15,44 @@ const PATH_ICONO = {
 };
 
 // Dibuja el icono sobre un canvas y lo usa como textura de un sprite 3D (mas confiable
-// que una capa HTML superpuesta sobre el globo WebGL).
+// que una capa HTML superpuesta sobre el globo WebGL). Grande y con alto contraste para
+// que se lea claramente el barco/avion aunque el globo este alejado.
 function crearMarcadorIcono(nombreIcono, colorFondo) {
-  const size = 64;
+  const size = 128;
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#ffffff";
+
+  // Halo suave detras del badge para que resalte sobre cualquier fondo del planeta.
+  const halo = ctx.createRadialGradient(size / 2, size / 2, size * 0.22, size / 2, size / 2, size * 0.5);
+  halo.addColorStop(0, "rgba(0,0,0,.35)");
+  halo.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = halo;
+  ctx.fillRect(0, 0, size, size);
+
+  // Badge circular blanco con borde de color de marca.
   ctx.beginPath();
-  ctx.arc(size / 2, size / 2, size / 2 - 3, 0, Math.PI * 2);
+  ctx.arc(size / 2, size / 2, size * 0.36, 0, Math.PI * 2);
+  ctx.fillStyle = "#ffffff";
   ctx.fill();
-  ctx.lineWidth = 3;
+  ctx.lineWidth = size * 0.045;
   ctx.strokeStyle = colorFondo;
   ctx.stroke();
+
+  // Icono (viewBox 24x24) centrado y escalado grande dentro del badge.
   ctx.fillStyle = colorFondo;
-  ctx.translate(size / 2 - 12, size / 2 - 12);
+  const escala = (size * 0.44) / 24;
+  ctx.translate(size / 2 - (24 * escala) / 2, size / 2 - (24 * escala) / 2);
+  ctx.scale(escala, escala);
   ctx.fill(new Path2D(PATH_ICONO[nombreIcono]));
+
   const texture = new THREE.CanvasTexture(canvas);
-  const material = new THREE.SpriteMaterial({ map: texture, depthWrite: false, transparent: true });
+  texture.needsUpdate = true;
+  const material = new THREE.SpriteMaterial({ map: texture, depthWrite: false, depthTest: false, transparent: true });
   const sprite = new THREE.Sprite(material);
-  sprite.scale.set(7, 7, 1);
+  sprite.scale.set(16, 16, 1);
+  sprite.renderOrder = 999;
   return sprite;
 }
 

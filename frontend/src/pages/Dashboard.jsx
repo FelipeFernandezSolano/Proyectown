@@ -157,11 +157,11 @@ export default function Dashboard() {
           ) : (
             <ResponsiveContainer width="100%" height={310}>
               <BarChart data={barData} layout="vertical" margin={{ left: 10, right: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#d9e5ec" />
-                <XAxis type="number" tickFormatter={(v) => `$${v}`} fontSize={12} />
-                <YAxis type="category" dataKey="nombre" width={220} fontSize={11} interval={0} />
-                <Tooltip formatter={(v) => formatoUSD(v)} {...TOOLTIP_OSCURO} />
-                <Bar dataKey="utilidad" fill="#0c6291" radius={[0, 8, 8, 0]} />
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(255,255,255,0.12)" />
+                <XAxis type="number" tickFormatter={(v) => `$${v}`} fontSize={12} stroke="rgba(255,255,255,0.12)" tick={{ fill: "#95afc1" }} />
+                <YAxis type="category" dataKey="nombre" width={220} fontSize={11} interval={0} stroke="rgba(255,255,255,0.12)" tick={{ fill: "#95afc1" }} />
+                <Tooltip formatter={(v) => formatoUSD(v)} {...TOOLTIP_OSCURO} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
+                <Bar dataKey="utilidad" fill="#16c0cc" radius={[0, 8, 8, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}

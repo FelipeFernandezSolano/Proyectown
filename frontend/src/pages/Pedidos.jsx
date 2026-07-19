@@ -123,6 +123,11 @@ export default function Pedidos() {
   const [nota, setNota] = useState("");
   const [aEliminar, setAEliminar] = useState(null);
   const [busqueda, setBusqueda] = useState({ codigo: "", cliente: "", estado: "", envio: "" });
+  // Orden de la tabla: campo actual ("totalVenta" | "utilidad") y direccion (1 asc, -1 desc).
+  const [orden, setOrden] = useState({ campo: null, dir: 1 });
+  const alternarOrden = (campo) => setOrden((actual) => (
+    actual.campo === campo ? { campo, dir: -actual.dir } : { campo, dir: 1 }
+  ));
   const tablaRef = useRef(null);
   const rentabilidadObjetivo = searchParams.get("rentabilidad");
 
@@ -288,6 +293,10 @@ export default function Pedidos() {
   const opcionesEnvio = Array.from(new Set(pedidos.map((p) => p.tipoEnvio).filter(Boolean)));
   const setFiltro = (campo, valor) => setBusqueda((actual) => ({ ...actual, [campo]: valor }));
 
+  const pedidosOrdenados = orden.campo
+    ? [...pedidosFiltrados].sort((a, b) => ((Number(a[orden.campo]) || 0) - (Number(b[orden.campo]) || 0)) * orden.dir)
+    : pedidosFiltrados;
+
   const cambiarFiltro = (rentabilidad) => {
     if (rentabilidad) setSearchParams({ rentabilidad });
     else setSearchParams({});
@@ -413,8 +422,8 @@ export default function Pedidos() {
             <div className="metric-box"><span>Fecha pedido</span><b>{formatoFecha(trackingDetalle.fechaPedido)}</b></div>
           </div>
           <div className="surface-card direccion-entrega">
-            <strong>Direccion de entrega</strong>
-            <p>{trackingDetalle.direccionEntrega || "Sin direccion de entrega registrada."}</p>
+            <strong>Dirección de entrega</strong>
+            <p>{trackingDetalle.direccionEntrega || "Sin dirección de entrega registrada."}</p>
           </div>
           {trackingDetalle.items && trackingDetalle.items.length > 0 && (
             <div className="surface-card" style={{ marginTop: 12 }}>
@@ -429,8 +438,8 @@ export default function Pedidos() {
               </table>
             </div>
           )}
-          <p style={{ marginTop: 12, fontSize: 13, color: "#5b6b7a", display: "flex", alignItems: "center", gap: 6 }}>
-            <Icon name="clock" size={13} /> Los montos mostrados son estimaciones iniciales sujetas a revision logistica.
+          <p style={{ marginTop: 12, fontSize: 13, color: "var(--pch-gris-medio)", display: "flex", alignItems: "center", gap: 6 }}>
+            <Icon name="clock" size={13} /> Los montos mostrados son estimaciones iniciales sujetas a revisión logística.
           </p>
         </div>
       )}
@@ -442,17 +451,27 @@ export default function Pedidos() {
               <th>Codigo</th>
               {puedeGestionar && <th>Cliente</th>}
               <th>Envio</th><th>Estado</th>
-              {esAdmin && <><th>Venta</th><th>Utilidad</th><th>Rentabilidad</th></>}
+              {esAdmin && (
+                <>
+                  <th className="th-ordenable" onClick={() => alternarOrden("totalVenta")} title="Ordenar por venta">
+                    Venta <span className="th-ordenable-icono">{orden.campo === "totalVenta" ? (orden.dir === 1 ? "▲" : "▼") : "⇅"}</span>
+                  </th>
+                  <th className="th-ordenable" onClick={() => alternarOrden("utilidad")} title="Ordenar por utilidad">
+                    Utilidad <span className="th-ordenable-icono">{orden.campo === "utilidad" ? (orden.dir === 1 ? "▲" : "▼") : "⇅"}</span>
+                  </th>
+                  <th>Rentabilidad</th>
+                </>
+              )}
               {esOperador && <th>Peso facturable</th>}
               {esCliente && <><th>Total</th><th>Pagado</th><th>Saldo</th></>}
               <th>Fecha</th>{esAdmin && <th></th>}
             </tr>
           </thead>
           <tbody>
-            {pedidosFiltrados.length === 0 && (
+            {pedidosOrdenados.length === 0 && (
               <tr><td colSpan={esAdmin ? 9 : esOperador ? 6 : 7}><div className="estado-vacio">No hay pedidos para este filtro.</div></td></tr>
             )}
-            {pedidosFiltrados.map((p) => (
+            {pedidosOrdenados.map((p) => (
               <tr
                 key={p.id}
                 className="fila-clickeable"
@@ -532,8 +551,8 @@ export default function Pedidos() {
             </div>
 
             <div className="surface-card direccion-entrega">
-              <strong>Direccion de entrega</strong>
-              <p>{detalle.direccionEntrega || "Sin direccion de entrega registrada."}</p>
+              <strong>Dirección de entrega</strong>
+              <p>{detalle.direccionEntrega || "Sin dirección de entrega registrada."}</p>
             </div>
 
             <h4 className="modal-section-title"><Icon name="tag" size={15} />Productos</h4>

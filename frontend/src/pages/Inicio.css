@@ -149,12 +149,6 @@
 .is-footer-grid>div a:hover{color:var(--is-teal);}
 .is-footer-base{border-top:1px solid var(--is-line);text-align:center;padding:20px;color:var(--is-muted);font-size:13px;}
 
-/* ---- whatsapp float ---- */
-.is-wa{position:fixed;right:22px;bottom:22px;z-index:50;width:58px;height:58px;border-radius:50%;
-  background:#25D366;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 30px rgba(37,211,102,.5);
-  animation:is-pulse 2.4s infinite;}
-@keyframes is-pulse{0%{box-shadow:0 0 0 0 rgba(37,211,102,.5)}70%{box-shadow:0 0 0 18px rgba(37,211,102,0)}100%{box-shadow:0 0 0 0 rgba(37,211,102,0)}}
-
 /* ---- reveal ---- */
 .reveal{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s ease;}
 .reveal.visible{opacity:1;transform:none;}
