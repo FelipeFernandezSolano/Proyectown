@@ -7,7 +7,7 @@ import "./Navbar.css";
 const enlaces = [
   { to: "/dashboard", label: "Dashboard", exact: true, icono: "dashboard", soloAdmin: true },
   { to: "/pedidos", label: "Pedidos", labelCliente: "Mis pedidos", icono: "box" },
-  { to: "/nuevo-pedido", label: "Nuevo pedido", icono: "plus", soloAdmin: true },
+  { to: "/nuevo-pedido", label: "Nuevo pedido", labelCliente: "Crear pedido", icono: "plus", roles: ["ADMINISTRADOR", "CLIENTE"] },
   { to: "/simulador", label: "Simulador", labelCliente: "Cotizador", icono: "calculator" },
   { to: "/clientes", label: "Clientes", icono: "users", soloAdmin: true },
   { to: "/productos", label: "Productos", icono: "tag" },
@@ -24,7 +24,7 @@ export default function Navbar() {
     navigate("/login");
   };
 
-  const visibles = enlaces.filter((e) => !e.soloAdmin || esAdmin);
+  const visibles = enlaces.filter((e) => (e.roles ? e.roles.includes(usuario?.rol) : (!e.soloAdmin || esAdmin)));
   const nombreVisible = esAdmin ? "Administrador" : (usuario?.nombre || "Usuario").replace(" ImportSmart", "");
 
   return (

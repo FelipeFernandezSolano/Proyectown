@@ -148,6 +148,7 @@ INSERT INTO tarifas_envio (tipo, costo_por_kg_usd, dias_estimados, descripcion) 
 ('MARITIMO', 3.2, 55, 'Envio maritimo consolidado: referencia operativa de 40 a 55 dias calendario.');
 
 INSERT INTO estados_pedido (nombre, orden, color) VALUES
+('En revisión', 0, '#f5a524'),
 ('Cotizado', 1, '#5b6b7a'),
 ('Aprobado', 2, '#0c6291'),
 ('Comprado', 3, '#14b8c4'),

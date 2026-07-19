@@ -16,12 +16,13 @@ const Simulador = lazy(() => import("./pages/Simulador"));
 const Clientes = lazy(() => import("./pages/Clientes"));
 const Productos = lazy(() => import("./pages/Productos"));
 
-function ShellPrivado({ children, soloAdmin = false }) {
+function ShellPrivado({ children, soloAdmin = false, roles }) {
   const { usuario } = useAuth();
   const esAdmin = usuario?.rol === "ADMINISTRADOR";
+  const permitido = roles ? roles.includes(usuario?.rol) : (!soloAdmin || esAdmin);
   return (
     <ProtectedRoute>
-      {soloAdmin && !esAdmin ? (
+      {!permitido ? (
         <Navigate to="/pedidos" replace />
       ) : (
         <div className="app-shell">
@@ -46,7 +47,7 @@ function RutasApp() {
       <Route path="/restablecer-contrasena" element={<RestablecerContrasena />} />
       <Route path="/dashboard" element={<ShellPrivado soloAdmin><Dashboard /></ShellPrivado>} />
       <Route path="/pedidos" element={<ShellPrivado><Pedidos /></ShellPrivado>} />
-      <Route path="/nuevo-pedido" element={<ShellPrivado soloAdmin><NuevoPedido /></ShellPrivado>} />
+      <Route path="/nuevo-pedido" element={<ShellPrivado roles={["ADMINISTRADOR", "CLIENTE"]}><NuevoPedido /></ShellPrivado>} />
       <Route path="/simulador" element={<ShellPrivado><Simulador /></ShellPrivado>} />
       <Route path="/clientes" element={<ShellPrivado soloAdmin><Clientes /></ShellPrivado>} />
       <Route path="/productos" element={<ShellPrivado><Productos /></ShellPrivado>} />

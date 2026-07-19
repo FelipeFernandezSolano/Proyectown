@@ -128,16 +128,16 @@ public class AuthService {
 
     @Transactional
     public void forgotPassword(ForgotPasswordRequest request) {
-        Usuario usuario = usuarioRepository.findByEmailIgnoreCaseAndActivoTrue(request.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("No existe una cuenta activa con ese correo"));
+        // No revela si el correo existe o no (evita enumeracion de cuentas): responde igual en ambos casos.
+        usuarioRepository.findByEmailIgnoreCaseAndActivoTrue(request.getEmail()).ifPresent(usuario -> {
+            String token = UUID.randomUUID().toString();
+            usuario.setResetToken(token);
+            usuario.setResetTokenExpira(LocalDateTime.now().plusHours(1));
+            usuarioRepository.save(usuario);
 
-        String token = UUID.randomUUID().toString();
-        usuario.setResetToken(token);
-        usuario.setResetTokenExpira(LocalDateTime.now().plusHours(1));
-        usuarioRepository.save(usuario);
-
-        String enlace = frontendUrl + "/restablecer-contrasena?token=" + token;
-        emailService.enviarRecuperacionContrasena(usuario.getEmail(), enlace);
+            String enlace = frontendUrl + "/restablecer-contrasena?token=" + token;
+            emailService.enviarRecuperacionContrasena(usuario.getEmail(), enlace);
+        });
     }
 
     @Transactional

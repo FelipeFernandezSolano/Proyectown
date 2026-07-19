@@ -6,6 +6,7 @@ import {
 import { formatoUSD, formatoNumero, RENTABILIDAD } from "../utils/format";
 import Icon from "../components/Icon";
 import AutocompleteInput from "../components/AutocompleteInput";
+import { useAuth } from "../context/AuthContext";
 
 const pesoVol = (l, a, h) => {
   const v = ((Number(l) * Number(a) * Number(h)) / 1000000) * 168;
@@ -25,6 +26,8 @@ const clasificar = (m) => (m >= 25 ? "RENTABLE" : m >= 12 ? "POCO_RENTABLE" : "N
 
 export default function NuevoPedido() {
   const navigate = useNavigate();
+  const { usuario } = useAuth();
+  const esCliente = usuario?.rol === "CLIENTE";
   const [clientes, setClientes] = useState([]);
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
@@ -35,15 +38,15 @@ export default function NuevoPedido() {
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
 
-  const [form, setForm] = useState({ clienteId: "", tipoEnvio: "AEREO", descripcion: "", direccionEntrega: "", gastosAdicionales: 0 });
+  const [form, setForm] = useState({ clienteId: esCliente ? usuario.clienteId : "", tipoEnvio: "AEREO", descripcion: "", direccionEntrega: "", gastosAdicionales: 0 });
   const [items, setItems] = useState([]);
   const [paquetes, setPaquetes] = useState([{ descripcion: "Caja 1", largoCm: 0, anchoCm: 0, altoCm: 0, pesoRealKg: 0 }]);
 
   useEffect(() => {
-    buscarClientes("").then(setClientes).catch(() => {});
+    if (!esCliente) buscarClientes("").then(setClientes).catch(() => {});
     getProductosActivos().then(setProductos).catch(() => {});
     getCategorias().then(setCategorias).catch(() => {});
-  }, []);
+  }, [esCliente]);
 
   const normalizar = (v) => String(v || "").trim().toLowerCase();
   const clienteExacto = clientes.find((c) => normalizar(c.nombre) === normalizar(clienteTexto));
@@ -166,6 +169,16 @@ export default function NuevoPedido() {
     if (!form.direccionEntrega.trim()) { setError("Ingresa la direccion de entrega."); return; }
     const itemsValidos = items.filter((it) => it.productoId);
     if (itemsValidos.length === 0) { setError("Agrega al menos un producto registrado."); return; }
+    if (itemsValidos.some((it) => !(Number(it.cantidad) > 0) || !(Number(it.precioVenta) > 0))) {
+      setError("Completa cantidad y precio de venta en todos los productos.");
+      return;
+    }
+    if (paquetes.length === 0 || paquetes.some((pk) =>
+      !pk.descripcion?.trim() || !(Number(pk.largoCm) > 0) || !(Number(pk.anchoCm) > 0)
+      || !(Number(pk.altoCm) > 0) || !(Number(pk.pesoRealKg) > 0))) {
+      setError("Completa descripcion, dimensiones y peso real de todos los paquetes.");
+      return;
+    }
     setGuardando(true);
     try {
       const dto = {
@@ -210,27 +223,33 @@ export default function NuevoPedido() {
             <h3 className="card-titulo"><span className="icono-titulo"><Icon name="users" size={16} /></span>1. Datos comerciales</h3>
             <div className="form-grid">
               <div className="campo"><label>Empresa cliente *</label>
-                <AutocompleteInput
-                  value={clienteTexto}
-                  onChange={seleccionarClienteTexto}
-                  options={clientes.map((c) => c.nombre)}
-                  placeholder="Escriba el nombre de la empresa"
-                />
-                {debeRegistrarCliente && (
-                  <button
-                    type="button"
-                    className="btn btn-secundario mini-boton btn-inline-form"
-                    onClick={() => setModalCliente({
-                      nombre: clienteTexto,
-                      contacto: "",
-                      email: "",
-                      telefono: "",
-                      pais: "Costa Rica",
-                      direccion: "",
-                    })}
-                  >
-                    <Icon name="plus" size={14} />Registrar empresa
-                  </button>
+                {esCliente ? (
+                  <input value={usuario.nombre} disabled />
+                ) : (
+                  <>
+                    <AutocompleteInput
+                      value={clienteTexto}
+                      onChange={seleccionarClienteTexto}
+                      options={clientes.map((c) => c.nombre)}
+                      placeholder="Escriba el nombre de la empresa"
+                    />
+                    {debeRegistrarCliente && (
+                      <button
+                        type="button"
+                        className="btn btn-secundario mini-boton btn-inline-form"
+                        onClick={() => setModalCliente({
+                          nombre: clienteTexto,
+                          contacto: "",
+                          email: "",
+                          telefono: "",
+                          pais: "Costa Rica",
+                          direccion: "",
+                        })}
+                      >
+                        <Icon name="plus" size={14} />Registrar empresa
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
               <div className="campo"><label>Modalidad de envio</label>
@@ -243,7 +262,9 @@ export default function NuevoPedido() {
               <div className="campo" style={{ gridColumn: "1 / -1" }}><label>Descripcion (opcional)</label>
                 <input value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} placeholder="Se genera con los productos si se deja vacio" /></div>
               <div className="campo" style={{ gridColumn: "1 / -1" }}><label>Direccion de entrega *</label>
-                <input
+                <textarea
+                  rows={3}
+                  required
                   value={form.direccionEntrega}
                   onChange={(e) => setForm({ ...form, direccionEntrega: e.target.value })}
                   placeholder="Provincia, canton, distrito y senas exactas"
@@ -263,7 +284,7 @@ export default function NuevoPedido() {
                     options={productos.map((p) => p.nombre)}
                     placeholder="Escriba el producto"
                   />
-                  {(it.productoTexto || "").trim() && !it.productoId && (
+                  {!esCliente && (it.productoTexto || "").trim() && !it.productoId && (
                     <button
                       type="button"
                       className="btn btn-secundario mini-boton btn-inline-form"
@@ -288,9 +309,9 @@ export default function NuevoPedido() {
                   )}
                 </div>
                 <div className="campo" style={{ width: 90 }}><label>Cant.</label>
-                  <input type="number" min="1" value={it.cantidad} onChange={(e) => setItem(i, "cantidad", e.target.value)} /></div>
+                  <input type="number" min="1" required value={it.cantidad} onChange={(e) => setItem(i, "cantidad", e.target.value)} /></div>
                 <div className="campo" style={{ width: 130 }}><label>Venta USD</label>
-                  <input type="number" step="0.01" value={it.precioVenta ?? ""} onChange={(e) => setItem(i, "precioVenta", e.target.value)} /></div>
+                  <input type="number" step="0.01" min="0.01" required value={it.precioVenta ?? ""} onChange={(e) => setItem(i, "precioVenta", e.target.value)} /></div>
                 <button className="btn-icono" onClick={() => delItem(i)}><Icon name="trash" size={16} /></button>
               </div>
             ))}
@@ -302,15 +323,15 @@ export default function NuevoPedido() {
             {paquetes.map((pk, i) => (
               <div key={i} className="form-row">
                 <div className="campo" style={{ flex: 1, minWidth: 130 }}><label>Descripcion</label>
-                  <input value={pk.descripcion} onChange={(e) => setPaquete(i, "descripcion", e.target.value)} /></div>
+                  <input required value={pk.descripcion} onChange={(e) => setPaquete(i, "descripcion", e.target.value)} /></div>
                 <div className="campo" style={{ width: 90 }}><label>Largo</label>
-                  <input type="number" step="0.1" min="0" value={pk.largoCm} onChange={(e) => setPaquete(i, "largoCm", e.target.value)} /></div>
+                  <input type="number" step="0.1" min="0.1" required value={pk.largoCm} onChange={(e) => setPaquete(i, "largoCm", e.target.value)} /></div>
                 <div className="campo" style={{ width: 90 }}><label>Ancho</label>
-                  <input type="number" step="0.1" min="0" value={pk.anchoCm} onChange={(e) => setPaquete(i, "anchoCm", e.target.value)} /></div>
+                  <input type="number" step="0.1" min="0.1" required value={pk.anchoCm} onChange={(e) => setPaquete(i, "anchoCm", e.target.value)} /></div>
                 <div className="campo" style={{ width: 90 }}><label>Alto</label>
-                  <input type="number" step="0.1" min="0" value={pk.altoCm} onChange={(e) => setPaquete(i, "altoCm", e.target.value)} /></div>
+                  <input type="number" step="0.1" min="0.1" required value={pk.altoCm} onChange={(e) => setPaquete(i, "altoCm", e.target.value)} /></div>
                 <div className="campo" style={{ width: 100 }}><label>Peso real</label>
-                  <input type="number" step="0.01" min="0" value={pk.pesoRealKg} onChange={(e) => setPaquete(i, "pesoRealKg", e.target.value)} /></div>
+                  <input type="number" step="0.01" min="0.01" required value={pk.pesoRealKg} onChange={(e) => setPaquete(i, "pesoRealKg", e.target.value)} /></div>
                 <span className="metric-box" style={{ padding: "8px 10px" }}><span>Vol.</span><b>{formatoNumero(pesoVol(pk.largoCm, pk.anchoCm, pk.altoCm))} kg</b></span>
                 <button className="btn-icono" onClick={() => delPaquete(i)}><Icon name="trash" size={16} /></button>
               </div>

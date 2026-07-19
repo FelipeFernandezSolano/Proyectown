@@ -7,6 +7,7 @@ import com.importsmart.dto.PedidoResumenDTO;
 import com.importsmart.model.Usuario;
 import com.importsmart.security.UserPrincipal;
 import com.importsmart.service.PedidoService;
+import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -45,9 +46,12 @@ public class PedidoController {
     }
 
     @PostMapping
-    public PedidoDetalleDTO crear(@RequestBody PedidoRequest req, @AuthenticationPrincipal UserPrincipal principal) {
+    public PedidoDetalleDTO crear(@Valid @RequestBody PedidoRequest req, @AuthenticationPrincipal UserPrincipal principal) {
         if (esCliente(principal)) {
             req.setClienteId(clienteId(principal));
+            // El estado inicial de un pedido autogestionado por el cliente siempre es "En revisión":
+            // no se confia en lo que mande el cliente en el payload (evita que se autoapruebe un pedido).
+            req.setEstadoNombre("En revisión");
         }
         return pedidoService.crear(req);
     }

@@ -16,7 +16,16 @@ function Semaforo({ valor }) {
   return <span className="semaforo"><span className="punto" style={{ background: r.punto }} />{r.texto}</span>;
 }
 
-const PASOS_TRACKING = ["Cotizado", "Aprobado", "Comprado", "En bodega", "En transito", "En aduana", "Entregado"];
+// 5 etapas visibles en la linea de tiempo. "estadoClick" es el estado real que se aplica
+// cuando el Operador/Administrador hace clic en esa bolita (los estados granulares Comprado,
+// En bodega, En transito y En aduana se agrupan visualmente en un solo nodo "En transito / Aduana").
+const PASOS_TRACKING = [
+  { grupo: "en_revision", label: "En Revision", estadoClick: "En revisi\u00f3n" },
+  { grupo: "cotizado", label: "Cotizado", estadoClick: "Cotizado" },
+  { grupo: "aprobado", label: "Aprobado", estadoClick: "Aprobado" },
+  { grupo: "transito_aduana", label: "En transito / Aduana", estadoClick: "En transito" },
+  { grupo: "entregado", label: "Entregado", estadoClick: "Entregado" },
+];
 
 function normalizarEstado(estado) {
   return String(estado || "")
@@ -25,15 +34,13 @@ function normalizarEstado(estado) {
     .toLowerCase();
 }
 
-function estadoLogistico(estado) {
+function grupoLogistico(estado) {
   const valor = normalizarEstado(estado);
-  if (valor.includes("entregado")) return "Entregado";
-  if (valor.includes("aduana")) return "En aduana";
-  if (valor.includes("transito")) return "En transito";
-  if (valor.includes("bodega")) return "En bodega";
-  if (valor.includes("comprado")) return "Comprado";
-  if (valor.includes("aprobado")) return "Aprobado";
-  return "Cotizado";
+  if (valor.includes("entregado")) return "entregado";
+  if (valor.includes("aduana") || valor.includes("transito") || valor.includes("bodega") || valor.includes("comprado")) return "transito_aduana";
+  if (valor.includes("aprobado")) return "aprobado";
+  if (valor.includes("revision")) return "en_revision";
+  return "cotizado";
 }
 
 function diasFaltantes(pedido) {
@@ -54,24 +61,40 @@ function textoTiempoEstimado(pedido) {
     : `Tiempo estimado de llegada: 15 a 22 dias calendario${faltanTexto}.`;
 }
 
-function TrackingStepper({ pedido }) {
-  const historialPorEstado = new Map(
-    (pedido?.historial || []).map((h) => [estadoLogistico(h.estado), h])
+function TrackingStepper({ pedido, editable, onCambiarEstado }) {
+  const historialPorGrupo = new Map(
+    (pedido?.historial || []).map((h) => [grupoLogistico(h.estado), h])
   );
-  const indexEstadoActual = PASOS_TRACKING.indexOf(estadoLogistico(pedido?.estado));
+  const grupoActual = grupoLogistico(pedido?.estado);
+  const indexEstadoActual = PASOS_TRACKING.findIndex((paso) => paso.grupo === grupoActual);
   const indexHistorial = PASOS_TRACKING.reduce((max, paso, index) => (
-    historialPorEstado.has(paso) ? Math.max(max, index) : max
+    historialPorGrupo.has(paso.grupo) ? Math.max(max, index) : max
   ), -1);
   const activoIndex = Math.max(indexEstadoActual, indexHistorial, 0);
+
+  const manejarClick = (paso) => {
+    if (!editable || !onCambiarEstado) return;
+    const confirmado = window.confirm(
+      `¿Estás seguro de que deseas cambiar el estado de este pedido a "${paso.label}"?`
+    );
+    if (confirmado) onCambiarEstado(paso.estadoClick);
+  };
+
   return (
     <div className="tracking-box">
       <div className="tracking-stepper">
         {PASOS_TRACKING.map((paso, index) => {
-          const historial = historialPorEstado.get(paso);
+          const historial = historialPorGrupo.get(paso.grupo);
           return (
-            <div key={paso} className={"tracking-step" + (index <= activoIndex ? " activo" : "")}>
+            <div
+              key={paso.grupo}
+              className={"tracking-step" + (index <= activoIndex ? " activo" : "") + (editable ? " tracking-step-editable" : "")}
+              onClick={() => manejarClick(paso)}
+              role={editable ? "button" : undefined}
+              tabIndex={editable ? 0 : undefined}
+            >
               <span>{index + 1}</span>
-              <b>{paso}</b>
+              <b>{paso.label}</b>
               <small>{historial?.fecha ? formatoFecha(historial.fecha) : "Pendiente"}</small>
             </div>
           );
@@ -147,6 +170,13 @@ export default function Pedidos() {
     const d = await cambiarEstadoPedido(detalle.id, nuevoEstado, nota || null);
     setDetalle(d);
     setNota("");
+    cargar();
+  };
+
+  const cambiarEstadoDesdeStepper = async (estadoNombre) => {
+    const d = await cambiarEstadoPedido(detalle.id, estadoNombre, "Cambio de estado desde la linea de tiempo");
+    setDetalle(d);
+    setNuevoEstado(d.estado || "");
     cargar();
   };
 
@@ -254,7 +284,7 @@ export default function Pedidos() {
   ));
   const opcionesCodigo = Array.from(new Set(pedidos.map((p) => p.codigo).filter(Boolean)));
   const opcionesCliente = Array.from(new Set(pedidos.map((p) => p.clienteNombre).filter(Boolean)));
-  const opcionesEstado = Array.from(new Set(pedidos.map((p) => p.estado).filter(Boolean)));
+  const opcionesEstado = Array.from(new Set(["En revisión", ...pedidos.map((p) => p.estado).filter(Boolean)]));
   const opcionesEnvio = Array.from(new Set(pedidos.map((p) => p.tipoEnvio).filter(Boolean)));
   const setFiltro = (campo, valor) => setBusqueda((actual) => ({ ...actual, [campo]: valor }));
 
@@ -460,7 +490,11 @@ export default function Pedidos() {
               {"  "}~{detalle.diasEstimados} dias - Estado actual: <b>{detalle.estado}</b>
             </p>
 
-            <TrackingStepper pedido={detalle} />
+            <TrackingStepper
+              pedido={detalle}
+              editable={puedeGestionar}
+              onCambiarEstado={cambiarEstadoDesdeStepper}
+            />
 
             <div className="metric-strip" style={{ margin: "14px 0" }}>
               <div className="metric-box"><span>Estado</span><b>{detalle.estado}</b></div>

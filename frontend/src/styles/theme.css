@@ -1421,7 +1421,7 @@ a.alert-item {
 
 .tracking-stepper {
   display: grid;
-  grid-template-columns: repeat(7, minmax(86px, 1fr));
+  grid-template-columns: repeat(5, minmax(86px, 1fr));
   gap: 10px;
 }
 
@@ -1433,6 +1433,19 @@ a.alert-item {
   text-align: center;
   color: var(--pch-gris-medio);
   font-size: 12px;
+}
+
+.tracking-step-editable {
+  cursor: pointer;
+}
+
+.tracking-step-editable:hover span {
+  border-color: var(--pch-teal);
+  transform: translateY(-2px);
+}
+
+.tracking-step-editable span {
+  transition: transform .15s ease, border-color .15s ease;
 }
 
 .tracking-step span {

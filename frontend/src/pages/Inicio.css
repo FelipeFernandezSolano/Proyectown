@@ -7,6 +7,8 @@
 .is-landing a{color:inherit;text-decoration:none;}
 .is-landing h1,.is-landing h2,.is-landing h3,.is-landing h4{margin:0;letter-spacing:-.02em;line-height:1.08;}
 .is-landing p{margin:0;}
+.is-landing button{outline:none;}
+.is-landing button:focus-visible,.is-landing a:focus-visible{outline:2px solid var(--is-teal);outline-offset:2px;}
 
 /* ---- botones ---- */
 .is-btn{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,var(--is-teal),var(--is-ocean));

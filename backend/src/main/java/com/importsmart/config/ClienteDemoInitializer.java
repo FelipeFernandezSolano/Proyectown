@@ -87,6 +87,9 @@ public class ClienteDemoInitializer implements CommandLineRunner {
         ejecutarSqlSeguro("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS reset_token_expira DATETIME NULL");
         ejecutarSqlSeguro("UPDATE tarifas_envio SET dias_estimados = 22, descripcion = 'Envio aereo: referencia operativa de 15 a 22 dias calendario.' WHERE tipo = 'AEREO'");
         ejecutarSqlSeguro("UPDATE tarifas_envio SET dias_estimados = 55, descripcion = 'Envio maritimo consolidado: referencia operativa de 40 a 55 dias calendario.' WHERE tipo = 'MARITIMO'");
+        ejecutarSqlSeguro("INSERT INTO estados_pedido (nombre, orden, color) "
+                + "SELECT 'En revisión', 0, '#f5a524' FROM DUAL "
+                + "WHERE NOT EXISTS (SELECT 1 FROM estados_pedido WHERE nombre = 'En revisión')");
     }
 
     private void ejecutarSqlSeguro(String sql) {
