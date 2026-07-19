@@ -128,7 +128,7 @@ export default function Dashboard() {
     : [];
 
   return (
-    <div className="contenido dashboard-oscuro">
+    <div className="contenido">
       <div className="page-header">
         <div>
           <span className="page-kicker"><Icon name="dashboard" size={13} /> Operacion comercial</span>
