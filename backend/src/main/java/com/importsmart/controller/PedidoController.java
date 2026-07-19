@@ -59,7 +59,13 @@ public class PedidoController {
             // no se confia en lo que mande el cliente en el payload (evita que se autoapruebe un pedido).
             req.setEstadoNombre("En revisión");
         }
-        return pedidoService.crear(req);
+        PedidoDetalleDTO detalle = pedidoService.crear(req);
+        if (esOperador(principal)) {
+            ocultarFinanzas(detalle);
+        } else if (esCliente(principal)) {
+            ocultarRentabilidadCliente(detalle);
+        }
+        return detalle;
     }
 
     @PutMapping("/{id}")
@@ -73,6 +79,8 @@ public class PedidoController {
         PedidoDetalleDTO detalle = pedidoService.cambiarEstado(id, dto);
         if (esOperador(principal)) {
             ocultarFinanzas(detalle);
+        } else if (esCliente(principal)) {
+            ocultarRentabilidadCliente(detalle);
         }
         return detalle;
     }

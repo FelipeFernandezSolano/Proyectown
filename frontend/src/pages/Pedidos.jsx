@@ -16,6 +16,32 @@ function Semaforo({ valor }) {
   return <span className="semaforo"><span className="punto" style={{ background: r.punto }} />{r.texto}</span>;
 }
 
+// Direccion de entrega desglosada: pais/ciudad/canton por separado y las senas exactas
+// aparte, visible igual para Cliente, Operador y Administrador.
+function DireccionEntrega({ pedido }) {
+  const tieneDatos = pedido?.pais || pedido?.ciudad || pedido?.canton || pedido?.direccionEntrega;
+  if (!tieneDatos) {
+    return (
+      <div className="surface-card direccion-entrega">
+        <strong>Dirección de entrega</strong>
+        <p>Sin dirección de entrega registrada.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="surface-card direccion-entrega">
+      <strong>Dirección de entrega</strong>
+      <div className="direccion-entrega-grid">
+        <div><span>País</span><b>{pedido.pais || "-"}</b></div>
+        <div><span>Ciudad</span><b>{pedido.ciudad || "-"}</b></div>
+        <div><span>Cantón</span><b>{pedido.canton || "-"}</b></div>
+      </div>
+      <span className="direccion-entrega-senas-label">Señas exactas</span>
+      <p>{pedido.direccionEntrega || "Sin señas registradas."}</p>
+    </div>
+  );
+}
+
 // 5 etapas visibles en la linea de tiempo. "estadoClick" es el estado real que se aplica
 // cuando el Operador/Administrador hace clic en esa bolita (los estados granulares Comprado,
 // En bodega, En transito y En aduana se agrupan visualmente en un solo nodo "En transito / Aduana").
@@ -428,10 +454,7 @@ export default function Pedidos() {
             )}
             <div className="metric-box"><span>Fecha pedido</span><b>{formatoFecha(trackingDetalle.fechaPedido)}</b></div>
           </div>
-          <div className="surface-card direccion-entrega">
-            <strong>Dirección de entrega</strong>
-            <p>{trackingDetalle.direccionEntrega || "Sin dirección de entrega registrada."}</p>
-          </div>
+          <DireccionEntrega pedido={trackingDetalle} />
           {trackingDetalle.items && trackingDetalle.items.length > 0 && (
             <div className="surface-card" style={{ marginTop: 12 }}>
               <strong>Productos solicitados</strong>
@@ -557,10 +580,7 @@ export default function Pedidos() {
               {esAdmin && <div className="metric-box"><span>Utilidad</span><b className={Number(detalle.utilidad) >= 0 ? "num-positivo" : "num-negativo"}>{formatoUSD(detalle.utilidad)}</b></div>}
             </div>
 
-            <div className="surface-card direccion-entrega">
-              <strong>Dirección de entrega</strong>
-              <p>{detalle.direccionEntrega || "Sin dirección de entrega registrada."}</p>
-            </div>
+            <DireccionEntrega pedido={detalle} />
 
             <h4 className="modal-section-title"><Icon name="tag" size={15} />Productos</h4>
             <table className="tabla-pch">

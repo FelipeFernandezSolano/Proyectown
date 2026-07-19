@@ -34,6 +34,17 @@ public class Pedido {
     @Column(length = 400)
     private String descripcion;
 
+    // Direccion de entrega desglosada: pais/ciudad/canton por separado, y "direccionEntrega"
+    // se usa como las senas exactas (punto de referencia, numero de casa, etc).
+    @Column(length = 100)
+    private String pais;
+
+    @Column(length = 100)
+    private String ciudad;
+
+    @Column(length = 100)
+    private String canton;
+
     @Column(name = "direccion_entrega", length = 500)
     private String direccionEntrega;
 

@@ -3,11 +3,11 @@ import { useEffect, useRef, useState } from "react";
 import Icon from "../components/Icon";
 import RutaViaje from "../components/RutaViaje";
 import heroImg from "../assets/hero-importsmart.jpg";
-import slidePuerto from "../assets/slide-puerto-importsmart.png";
-import slideAereo from "../assets/slide-aereo-importsmart.png";
-import slideCamion from "../assets/slide-camion-importsmart.png";
-import slideBodega from "../assets/slide-bodega-importsmart.png";
-import nosotrosImg from "../assets/slide-oficina-importsmart.png";
+import slidePuerto from "../assets/slide-puerto-importsmart.jpg";
+import slideAereo from "../assets/slide-aereo-importsmart.jpg";
+import slideCamion from "../assets/slide-camion-importsmart.jpg";
+import slideBodega from "../assets/slide-bodega-importsmart.jpg";
+import nosotrosImg from "../assets/slide-oficina-importsmart.jpg";
 import "./Inicio.css";
 
 const slides = [

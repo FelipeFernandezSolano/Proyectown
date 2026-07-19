@@ -37,12 +37,21 @@ export default function NuevoPedido() {
   const [productoIndex, setProductoIndex] = useState(null);
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
-  // Solo aplica al Cliente: "catalogo" = elige productos que ya vendemos (precio fijo del catalogo);
-  // "cotizar" = producto que no tenemos, el cliente describe que necesita y nosotros cotizamos.
-  const [modoPedido, setModoPedido] = useState("catalogo");
-  const cotizandoProductoNuevo = esCliente && modoPedido === "cotizar";
+  // ImportSmart no es una tienda: no tiene catálogo propio de cara al cliente. El Cliente
+  // siempre describe qué necesita importar y nosotros lo cotizamos (el catálogo interno de
+  // productos solo lo usa el Administrador para armar pedidos ya conocidos/recurrentes).
+  const cotizandoProductoNuevo = esCliente;
 
-  const [form, setForm] = useState({ clienteId: esCliente ? usuario.clienteId : "", tipoEnvio: "AEREO", descripcion: "", direccionEntrega: "", gastosAdicionales: 0 });
+  const [form, setForm] = useState({
+    clienteId: esCliente ? usuario.clienteId : "",
+    tipoEnvio: "AEREO",
+    descripcion: "",
+    pais: "Costa Rica",
+    ciudad: "",
+    canton: "",
+    direccionEntrega: "",
+    gastosAdicionales: 0,
+  });
   const [items, setItems] = useState([]);
   const [paquetes, setPaquetes] = useState([{ descripcion: "Caja 1", largoCm: 0, anchoCm: 0, altoCm: 0, pesoRealKg: 0 }]);
 
@@ -170,10 +179,14 @@ export default function NuevoPedido() {
   const guardar = async () => {
     setError("");
     if (!form.clienteId) { setError("Selecciona una empresa cliente."); return; }
-    if (!form.direccionEntrega.trim()) { setError("Ingresa la direccion de entrega."); return; }
+    if (!form.pais.trim() || !form.ciudad.trim() || !form.canton.trim()) {
+      setError("Completa país, ciudad y cantón de entrega.");
+      return;
+    }
+    if (!form.direccionEntrega.trim()) { setError("Ingresa las señas exactas de entrega."); return; }
     const itemsValidos = items.filter((it) => it.productoId);
     if (cotizandoProductoNuevo) {
-      if (!form.descripcion.trim()) { setError("Describe el producto que queres importar."); return; }
+      if (!form.descripcion.trim()) { setError("Describe el producto que querés importar."); return; }
     } else if (itemsValidos.length === 0) {
       setError("Agrega al menos un producto registrado.");
       return;
@@ -184,7 +197,7 @@ export default function NuevoPedido() {
     if (paquetes.length === 0 || paquetes.some((pk) =>
       !pk.descripcion?.trim() || !(Number(pk.largoCm) > 0) || !(Number(pk.anchoCm) > 0)
       || !(Number(pk.altoCm) > 0) || !(Number(pk.pesoRealKg) > 0))) {
-      setError("Completa descripcion, dimensiones y peso real de todos los paquetes.");
+      setError("Completa descripción, dimensiones y peso real de todos los paquetes.");
       return;
     }
     setGuardando(true);
@@ -193,10 +206,13 @@ export default function NuevoPedido() {
         clienteId: Number(form.clienteId),
         tipoEnvio: form.tipoEnvio,
         descripcion: form.descripcion || items.map((it) => productos.find((p) => p.id === Number(it.productoId))?.nombre).filter(Boolean).join(", "),
+        pais: form.pais.trim(),
+        ciudad: form.ciudad.trim(),
+        canton: form.canton.trim(),
         direccionEntrega: form.direccionEntrega.trim(),
         gastosAdicionales: Number(form.gastosAdicionales) || 0,
         // Inmutabilidad del estado inicial: el cliente siempre crea en "En revisión"
-        // (el backend tambien lo fuerza, esto es defensa en profundidad desde el front).
+        // (el backend también lo fuerza, esto es defensa en profundidad desde el front).
         ...(esCliente ? { estadoNombre: "En revisión" } : {}),
         items: cotizandoProductoNuevo ? [] : itemsValidos.map((it) => ({
           productoId: Number(it.productoId), cantidad: Number(it.cantidad) || 1,
@@ -222,41 +238,19 @@ export default function NuevoPedido() {
     <div className="contenido">
       <div className="page-header">
         <div>
-          <span className="page-kicker"><Icon name="plus" size={13} /> {esCliente ? "Solicitud de cotizacion" : "Cotizacion operativa"}</span>
-          <h2>{esCliente ? "Solicitar cotizacion de importacion" : "Nuevo pedido de importacion"}</h2>
+          <span className="page-kicker"><Icon name="plus" size={13} /> {esCliente ? "Solicitud de cotización" : "Cotización operativa"}</span>
+          <h2>{esCliente ? "Solicitar cotización de importación" : "Nuevo pedido de importación"}</h2>
           <p className="subtitulo-pagina">{esCliente
-            ? "Completa los datos de tu carga desde China hasta Costa Rica para recibir una pre-cotizacion estimada."
-            : "Calcula peso volumetrico, envio, utilidad y rentabilidad antes de aprobar la compra."}</p>
+            ? "Completa los datos de tu carga desde China hasta Costa Rica para recibir una pre-cotización estimada."
+            : "Calcula peso volumétrico, envío, utilidad y rentabilidad antes de aprobar la compra."}</p>
         </div>
       </div>
 
       {esCliente && (
         <div className="card" style={{ marginBottom: 18 }}>
-          <h3 className="card-titulo"><span className="icono-titulo"><Icon name="box" size={16} /></span>¿Qué querés importar?</h3>
-          <div className="modo-pedido-opciones">
-            <button
-              type="button"
-              className={"modo-pedido-opcion" + (modoPedido === "catalogo" ? " activo" : "")}
-              onClick={() => setModoPedido("catalogo")}
-            >
-              <Icon name="tag" size={18} />
-              <div>
-                <strong>Ya tienen el producto</strong>
-                <p>Elegís de nuestro catálogo, con precio y peso ya definidos.</p>
-              </div>
-            </button>
-            <button
-              type="button"
-              className={"modo-pedido-opcion" + (modoPedido === "cotizar" ? " activo" : "")}
-              onClick={() => setModoPedido("cotizar")}
-            >
-              <Icon name="quote" size={18} />
-              <div>
-                <strong>No está en el catálogo</strong>
-                <p>Describís el producto y nosotros te cotizamos el envío.</p>
-              </div>
-            </button>
-          </div>
+          <p className="texto-tenue" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Icon name="quote" size={15} /> ImportSmart no vende productos propios: contanos qué necesitás importar y nosotros te armamos la cotización de envío.
+          </p>
         </div>
       )}
 
@@ -295,37 +289,61 @@ export default function NuevoPedido() {
                   </>
                 )}
               </div>
-              <div className="campo"><label>Modalidad de envio</label>
+              <div className="campo"><label>Modalidad de envío</label>
                 <select value={form.tipoEnvio} onChange={(e) => setForm({ ...form, tipoEnvio: e.target.value })}>
-                  <option value="AEREO">Aereo</option>
-                  <option value="MARITIMO">Maritimo</option>
+                  <option value="AEREO">Aéreo</option>
+                  <option value="MARITIMO">Marítimo</option>
                 </select></div>
               {!esCliente && (
                 <div className="campo"><label>Gastos adicionales (USD)</label>
                   <input type="number" step="0.01" min="0" value={form.gastosAdicionales} onChange={(e) => setForm({ ...form, gastosAdicionales: e.target.value })} /></div>
               )}
               <div className="campo" style={{ gridColumn: "1 / -1" }}>
-                <label>{cotizandoProductoNuevo ? "¿Qué producto necesitás? *" : "Descripción (opcional)"}</label>
+                <label>{cotizandoProductoNuevo ? "¿Qué producto necesitás importar? *" : "Descripción (opcional)"}</label>
                 {cotizandoProductoNuevo ? (
-                  <textarea
-                    rows={3}
-                    required
-                    value={form.descripcion}
-                    onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
-                    placeholder="Nombre del producto, características, uso, marca o modelo si aplica..."
-                  />
+                  <>
+                    <p className="texto-tenue" style={{ margin: "0 0 8px" }}>
+                      Contanos qué es, para qué lo vas a usar y cualquier detalle que ayude a identificarlo (marca,
+                      modelo, material, enlace de referencia, etc). Mientras más detalle, más precisa la cotización.
+                    </p>
+                    <textarea
+                      rows={3}
+                      required
+                      value={form.descripcion}
+                      onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
+                      placeholder="Ej: 20 lámparas LED de escritorio, regulables, para reventa..."
+                    />
+                  </>
                 ) : (
                   <input value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} placeholder="Se genera con los productos si se deja vacío" />
                 )}
               </div>
-              <div className="campo" style={{ gridColumn: "1 / -1" }}><label>Direccion de entrega *</label>
-                <textarea
-                  rows={3}
-                  required
-                  value={form.direccionEntrega}
-                  onChange={(e) => setForm({ ...form, direccionEntrega: e.target.value })}
-                  placeholder="Provincia, cantón, distrito y señas exactas"
-                /></div>
+              <div className="campo" style={{ gridColumn: "1 / -1" }}>
+                <label>Dirección de entrega *</label>
+                {esCliente && (
+                  <p className="texto-tenue" style={{ margin: "0 0 8px" }}>
+                    Necesitamos la dirección completa para calcular la entrega final en Costa Rica.
+                  </p>
+                )}
+                <div className="form-grid" style={{ marginTop: 0 }}>
+                  <div className="campo"><label>País</label>
+                    <input required value={form.pais} onChange={(e) => setForm({ ...form, pais: e.target.value })} placeholder="Costa Rica" /></div>
+                  <div className="campo"><label>Ciudad</label>
+                    <input required value={form.ciudad} onChange={(e) => setForm({ ...form, ciudad: e.target.value })} placeholder="San José" /></div>
+                  <div className="campo"><label>Cantón</label>
+                    <input required value={form.canton} onChange={(e) => setForm({ ...form, canton: e.target.value })} placeholder="Escazú" /></div>
+                </div>
+                <div className="campo" style={{ marginTop: 12 }}>
+                  <label>Señas exactas</label>
+                  <textarea
+                    rows={3}
+                    required
+                    value={form.direccionEntrega}
+                    onChange={(e) => setForm({ ...form, direccionEntrega: e.target.value })}
+                    placeholder="Distrito, punto de referencia, color de casa, número de local, etc."
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -383,6 +401,13 @@ export default function NuevoPedido() {
 
           <div className="card">
             <h3 className="card-titulo"><span className="icono-titulo"><Icon name="box" size={16} /></span>{cotizandoProductoNuevo ? "2" : "3"}. Paquetes y peso</h3>
+            {esCliente && (
+              <p className="texto-tenue" style={{ marginBottom: 12 }}>
+                Medí el producto o la caja tal como se va a enviar (largo, ancho y alto en centímetros) y pesalo en una
+                báscula. Con esos datos calculamos el peso que se cobra en el envío: si el paquete es grande pero
+                liviano, a veces se cobra más por el espacio que ocupa que por su peso real — por eso pedimos ambos.
+              </p>
+            )}
             {paquetes.map((pk, i) => (
               <div key={i} className="form-row">
                 <div className="campo" style={{ flex: 1, minWidth: 130 }}><label>Descripción</label>
@@ -415,7 +440,7 @@ export default function NuevoPedido() {
             <>
               <div className="fila-total-form">
                 <div><span>Peso facturable</span><b>{formatoNumero(totales.facturable)} kg</b></div>
-                <div><span>Costo envio</span><b>{formatoUSD(totales.costoEnvio)}</b></div>
+                <div><span>Costo envío</span><b>{formatoUSD(totales.costoEnvio)}</b></div>
                 <div><span>Subtotal</span><b>{formatoUSD(totales.subtotal)}</b></div>
                 <div><span>Total venta</span><b>{formatoUSD(totales.totalVenta)}</b></div>
                 <div><span>Utilidad ({formatoNumero(totales.margen)}%)</span>
@@ -478,11 +503,11 @@ export default function NuevoPedido() {
                 <input value={modalCliente.contacto} onChange={(e) => setModalCliente({ ...modalCliente, contacto: e.target.value })} required /></div>
               <div className="campo"><label>Email *</label>
                 <input type="email" value={modalCliente.email} onChange={(e) => setModalCliente({ ...modalCliente, email: e.target.value })} required /></div>
-              <div className="campo"><label>Telefono *</label>
+              <div className="campo"><label>Teléfono *</label>
                 <input value={modalCliente.telefono} onChange={(e) => setModalCliente({ ...modalCliente, telefono: e.target.value })} required /></div>
-              <div className="campo"><label>Pais *</label>
+              <div className="campo"><label>País *</label>
                 <input value={modalCliente.pais} onChange={(e) => setModalCliente({ ...modalCliente, pais: e.target.value })} required /></div>
-              <div className="campo" style={{ gridColumn: "1 / -1" }}><label>Direccion *</label>
+              <div className="campo" style={{ gridColumn: "1 / -1" }}><label>Dirección *</label>
                 <input value={modalCliente.direccion} onChange={(e) => setModalCliente({ ...modalCliente, direccion: e.target.value })} required /></div>
             </div>
             <div className="modal-acciones">
@@ -500,9 +525,9 @@ export default function NuevoPedido() {
             <div className="form-grid">
               <div className="campo" style={{ gridColumn: "1 / -1" }}><label>Nombre *</label>
                 <input value={modalProducto.nombre} onChange={(e) => setModalProducto({ ...modalProducto, nombre: e.target.value })} required /></div>
-              <div className="campo" style={{ gridColumn: "1 / -1" }}><label>Descripcion *</label>
+              <div className="campo" style={{ gridColumn: "1 / -1" }}><label>Descripción *</label>
                 <input value={modalProducto.descripcion} onChange={(e) => setModalProducto({ ...modalProducto, descripcion: e.target.value })} required /></div>
-              <div className="campo"><label>Categoria *</label>
+              <div className="campo"><label>Categoría *</label>
                 <select value={modalProducto.categoriaId} onChange={(e) => setModalProducto({ ...modalProducto, categoriaId: e.target.value })} required>
                   <option value="">-- Selecciona --</option>
                   {categorias.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}

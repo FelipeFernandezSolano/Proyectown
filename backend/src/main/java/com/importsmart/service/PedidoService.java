@@ -126,6 +126,13 @@ public class PedidoService {
             p.setCliente(cliente);
         }
         p.setDescripcion(req.getDescripcion());
+        String pais = req.getPais();
+        if ((pais == null || pais.isBlank()) && p.getCliente() != null) {
+            pais = p.getCliente().getPais();
+        }
+        p.setPais(pais);
+        p.setCiudad(req.getCiudad());
+        p.setCanton(req.getCanton());
         String direccionEntrega = req.getDireccionEntrega();
         if ((direccionEntrega == null || direccionEntrega.isBlank()) && p.getCliente() != null) {
             direccionEntrega = p.getCliente().getDireccion();
@@ -263,6 +270,9 @@ public class PedidoService {
             d.setClienteContacto(p.getCliente().getContacto());
         }
         d.setDescripcion(p.getDescripcion());
+        d.setPais(p.getPais());
+        d.setCiudad(p.getCiudad());
+        d.setCanton(p.getCanton());
         d.setDireccionEntrega(p.getDireccionEntrega());
         d.setTipoEnvio(p.getTipoEnvio() != null ? p.getTipoEnvio().name() : null);
         if (p.getEstadoPedido() != null) {

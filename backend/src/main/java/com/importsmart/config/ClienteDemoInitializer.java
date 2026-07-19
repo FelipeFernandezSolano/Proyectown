@@ -138,6 +138,9 @@ public class ClienteDemoInitializer implements CommandLineRunner {
             req.setClienteId(cliente.getId());
             req.setTipoEnvio(i % 2 == 0 ? "AEREO" : "MARITIMO");
             req.setDescripcion(p1.getNombre() + ", " + p2.getNombre());
+            req.setPais(cliente.getPais() != null ? cliente.getPais() : "Costa Rica");
+            req.setCiudad("San José");
+            req.setCanton("Central");
             req.setDireccionEntrega(cliente.getDireccion());
             req.setGastosAdicionales(BigDecimal.valueOf(12 + (i * 3L)));
             req.getItems().add(item(p1, 1 + (i % 2)));

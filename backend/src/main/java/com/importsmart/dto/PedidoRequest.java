@@ -14,7 +14,13 @@ public class PedidoRequest {
     // con su propio clienteId DESPUES del data-binding (ver PedidoController.crear).
     private Long clienteId;
     private String descripcion;
-    @NotBlank(message = "La direccion de entrega es obligatoria.")
+    @NotBlank(message = "El pais de entrega es obligatorio.")
+    private String pais;
+    @NotBlank(message = "La ciudad de entrega es obligatoria.")
+    private String ciudad;
+    @NotBlank(message = "El canton de entrega es obligatorio.")
+    private String canton;
+    @NotBlank(message = "Las senas exactas de entrega son obligatorias.")
     private String direccionEntrega;
     @NotBlank(message = "Selecciona la modalidad de envio.")
     private String tipoEnvio;       // AEREO | MARITIMO

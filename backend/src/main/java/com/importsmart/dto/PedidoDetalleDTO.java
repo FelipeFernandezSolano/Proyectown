@@ -16,6 +16,9 @@ public class PedidoDetalleDTO {
     private String clienteNombre;
     private String clienteContacto;
     private String descripcion;
+    private String pais;
+    private String ciudad;
+    private String canton;
     private String direccionEntrega;
     private String tipoEnvio;
     private String estado;
