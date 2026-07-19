@@ -20,6 +20,24 @@
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
 }
 
+.login-volver {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  margin-bottom: 16px;
+  color: var(--pch-gris-medio);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.login-volver:hover {
+  color: var(--pch-teal);
+}
+
 .login-logo {
   display: block;
   width: 220px;

@@ -10,8 +10,6 @@ import slideBodega from "../assets/slide-bodega-importsmart.png";
 import nosotrosImg from "../assets/slide-oficina-importsmart.png";
 import "./Inicio.css";
 
-const WHATSAPP = "50688888888"; // <-- cambia por el número real de la empresa
-
 const slides = [
   { img: slidePuerto, etiqueta: "Carga marítima", titulo: "Del puerto de origen hasta tu bodega", texto: "Coordinamos consolidación, tránsito marítimo, aduana y entrega en una sola gestión." },
   { img: slideAereo, etiqueta: "Carga aérea", titulo: "Importaciones aéreas con tiempos visibles", texto: "Para carga urgente: comparamos modalidad, costo y fecha antes de comprometer la entrega." },
@@ -112,7 +110,6 @@ export default function Inicio() {
   }, []);
 
   const s = slides[slide];
-  const wa = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent("Hola ImportSmart, quiero cotizar una importación.")}`;
 
   return (
     <div className="is-landing">
@@ -129,8 +126,7 @@ export default function Inicio() {
           <a href="#contacto">Contacto</a>
         </nav>
         <div className="is-nav-cta">
-          <Link className="is-btn-ghost" to="/login">Iniciar sesión</Link>
-          <a className="is-btn" href={wa} target="_blank" rel="noopener noreferrer">Cotizar ahora <Icon name="arrowRight" size={15} /></a>
+          <Link className="is-btn" to="/login">Iniciar sesión <Icon name="arrowRight" size={15} /></Link>
         </div>
       </header>
 
@@ -147,8 +143,7 @@ export default function Inicio() {
             <h1>Tu operación de importación<br /><em>en las mejores manos.</em></h1>
             <p>Cotiza, compara modalidades y acompaña cada orden desde el proveedor hasta la entrega, con información clara para vos y para tu cliente.</p>
             <div className="is-hero-actions">
-              <a className="is-btn is-btn-lg" href={wa} target="_blank" rel="noopener noreferrer"><Icon name="quote" size={16} /> Solicita tu cotización</a>
-              <Link className="is-btn-ghost is-btn-lg" to="/login">Entrar a la plataforma <Icon name="arrowRight" size={15} /></Link>
+              <Link className="is-btn is-btn-lg" to="/login">Entrar a la plataforma <Icon name="arrowRight" size={15} /></Link>
             </div>
             <ul className="is-checklist">
               <li><Icon name="check" size={16} /> Comparamos aéreo y marítimo antes de comprometer una fecha.</li>
@@ -257,10 +252,9 @@ export default function Inicio() {
       <section className="is-cta" id="contacto">
         <div className="is-cta-inner reveal">
           <h2>¿Listo para importar con claridad?</h2>
-          <p>Escribinos y armamos tu primera cotización. Atención guiada por WhatsApp.</p>
+          <p>Ingresá a la plataforma para cotizar tu importación y dar seguimiento a cada pedido.</p>
           <div className="is-cta-actions">
-            <a className="is-btn is-btn-lg" href={wa} target="_blank" rel="noopener noreferrer"><Icon name="quote" size={16} /> Cotizar por WhatsApp</a>
-            <Link className="is-btn-ghost is-btn-lg is-ghost-light" to="/login">Iniciar sesión</Link>
+            <Link className="is-btn is-btn-lg" to="/login"><Icon name="quote" size={16} /> Iniciar sesión</Link>
           </div>
         </div>
       </section>
@@ -277,11 +271,10 @@ export default function Inicio() {
           </div>
           <div>
             <h5>Plataforma</h5>
-            <Link to="/login">Iniciar sesión</Link><a href={wa} target="_blank" rel="noopener noreferrer">Cotizar</a>
+            <Link to="/login">Iniciar sesión</Link>
           </div>
           <div>
             <h5>Contacto</h5>
-            <a href={wa} target="_blank" rel="noopener noreferrer">WhatsApp</a>
             <a href="mailto:contacto@importsmart.com">contacto@importsmart.com</a>
             <span>San José, Costa Rica</span>
           </div>
@@ -290,10 +283,6 @@ export default function Inicio() {
           <span>&copy; {new Date().getFullYear()} ImportSmart. Proyecto académico - empresa ficticia.</span>
         </div>
       </footer>
-
-      <a className="is-wa" href={wa} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">
-        <svg viewBox="0 0 32 32" width="28" height="28" fill="#fff"><path d="M16 3C9 3 3.5 8.5 3.5 15.5c0 2.4.7 4.6 1.9 6.6L3 29l7.1-2.3c1.9 1 4 1.6 6.3 1.6 7 0 12.5-5.5 12.5-12.5S23 3 16 3zm0 22.7c-2 0-3.9-.5-5.5-1.5l-.4-.2-4.2 1.3 1.4-4.1-.3-.4c-1.1-1.7-1.7-3.6-1.7-5.7C5.6 9.7 10.3 5 16 5s10.4 4.7 10.4 10.5S21.7 25.7 16 25.7zm5.9-7.8c-.3-.2-1.9-.9-2.2-1-.3-.1-.5-.2-.7.2s-.8 1-1 1.2c-.2.2-.4.2-.7.1-.3-.2-1.4-.5-2.6-1.6-1-.9-1.6-1.9-1.8-2.3-.2-.3 0-.5.1-.7.1-.1.3-.4.5-.6.1-.2.2-.3.3-.5.1-.2 0-.4 0-.6-.1-.2-.7-1.7-1-2.3-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.2 1.2-1.2 2.8s1.2 3.3 1.4 3.5c.2.2 2.4 3.7 5.9 5.1.8.4 1.5.6 2 .7.8.3 1.6.2 2.2.1.7-.1 1.9-.8 2.2-1.5.3-.7.3-1.4.2-1.5-.1-.2-.3-.2-.6-.4z"/></svg>
-      </a>
     </div>
   );
 }
