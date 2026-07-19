@@ -2,8 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Globe from "react-globe.gl";
 import * as THREE from "three";
 import Icon from "./Icon";
-import earthTexture from "../assets/earth-dark.jpg";
 import "./RutaViaje.css";
+
+// Textura realista de la Tierra: tierra en verde/marron y oceano en azul (three-globe).
+// Para uso 100% offline: descarga este JPG a src/assets/earth-day.jpg e importalo local.
+const EARTH_TEXTURE = "https://unpkg.com/three-globe/example/img/earth-day.jpg";
 
 const PATH_ICONO = {
   ship: "M4 10V5h5V3h6v2h5v5l-8 3zM3 13l9 3 9-3v2l-1 5H4l-1-5zm2 5h14l.4-2L12 18l-7.4-2z",
@@ -220,7 +223,7 @@ export default function RutaViaje() {
             ref={globeRef}
             width={size.w}
             height={size.h}
-            globeImageUrl={earthTexture}
+            globeImageUrl={EARTH_TEXTURE}
             backgroundColor="rgba(0,0,0,0)"
             atmosphereColor={ruta.color}
             atmosphereAltitude={0.2}
