@@ -64,6 +64,10 @@ export const convertirUsd = (usd) =>
 export const convertirMoneda = ({ monto, origen, destino }) =>
   client.get("/tipo-cambio/convertir-moneda", { params: { monto, origen, destino } }).then((r) => r.data);
 
+// ---- Chatbot publico del landing ----
+export const preguntarChatbot = (mensaje, historial = []) =>
+  client.post("/chatbot", { mensaje, historial }).then((r) => r.data);
+
 // ---- Cotizacion PDF (RF-16) ----
 export const descargarCotizacion = (pedidoId) =>
   client.get(`/cotizaciones/${pedidoId}/pdf`, { responseType: "blob" });

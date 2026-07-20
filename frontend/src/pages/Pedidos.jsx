@@ -62,11 +62,40 @@ function normalizarEstado(estado) {
 
 function grupoLogistico(estado) {
   const valor = normalizarEstado(estado);
-  if (valor.includes("entregado")) return "entregado";
+  if (valor.includes("entregado") || valor.includes("entregar")) return "entregado";
   if (valor.includes("aduana") || valor.includes("transito") || valor.includes("bodega") || valor.includes("comprado")) return "transito_aduana";
   if (valor.includes("aprobado")) return "aprobado";
   if (valor.includes("revision")) return "en_revision";
   return "cotizado";
+}
+
+/** true cuando el pedido ya esta en el pais y listo para coordinar entrega/retiro con el cliente. */
+function esListoParaEntregar(estado) {
+  return normalizarEstado(estado) === "por entregar";
+}
+
+/** Numero en formato internacional para wa.me (asume Costa Rica si vienen solo 8 digitos). */
+function numeroWhatsapp(telefono) {
+  const digitos = String(telefono || "").replace(/\D/g, "");
+  if (!digitos) return null;
+  return digitos.length <= 8 ? `506${digitos}` : digitos;
+}
+
+function mensajeListoParaEntregar(pedido) {
+  const zona = [pedido.pais, pedido.ciudad, pedido.canton].filter(Boolean).join(", ");
+  const direccion = [zona, pedido.direccionEntrega].filter(Boolean).join(" - ");
+  return (
+    `Hola! Te escribimos de ImportSmart: tu pedido ${pedido.codigo || ""} ya esta listo para entregar. ` +
+    `¿Como preferis recibirlo? 1) Retiralo sin costo en nuestra sede central, o 2) Te lo enviamos a tu ` +
+    `direccion registrada${direccion ? ` (${direccion})` : ""} con un costo adicional de envio local. ` +
+    `Contanos cual opcion preferis.`
+  );
+}
+
+function linkWhatsappEntrega(pedido) {
+  const numero = numeroWhatsapp(pedido.clienteTelefono);
+  if (!numero) return null;
+  return `https://wa.me/${numero}?text=${encodeURIComponent(mensajeListoParaEntregar(pedido))}`;
 }
 
 function diasFaltantes(pedido) {
@@ -127,6 +156,26 @@ function TrackingStepper({ pedido, editable, onCambiarEstado }) {
         })}
       </div>
       <p>{textoTiempoEstimado(pedido)}</p>
+    </div>
+  );
+}
+
+function AvisoEntrega({ pedido }) {
+  const link = linkWhatsappEntrega(pedido);
+  return (
+    <div className="aviso-entrega">
+      <div className="aviso-entrega-icono"><Icon name="box" size={26} /></div>
+      <div className="aviso-entrega-texto">
+        <strong>¡Pedido listo para entregar!</strong>
+        <p>Coordiná con el cliente si retira en la sede central o si prefiere envío a domicilio (con costo adicional).</p>
+      </div>
+      {link ? (
+        <a className="btn-whatsapp-grande" href={link} target="_blank" rel="noopener noreferrer">
+          <Icon name="chat" size={18} /> Avisar por WhatsApp
+        </a>
+      ) : (
+        <span className="aviso-entrega-sin-telefono">Sin teléfono registrado para WhatsApp</span>
+      )}
     </div>
   );
 }
@@ -533,7 +582,27 @@ export default function Pedidos() {
                 </td>
                 {puedeGestionar && <td>{p.clienteNombre || "-"}</td>}
                 <td><span className="chip-envio"><Icon name={p.tipoEnvio === "MARITIMO" ? "ship" : "plane"} size={13} />{p.tipoEnvio}</span></td>
-                <td><span className="badge badge-azul" style={{ background: `${p.estadoColor || "#0c6291"}22`, color: p.estadoColor || "#0c6291" }}>{p.estado}</span></td>
+                <td>
+                  <span className="badge badge-azul" style={{ background: `${p.estadoColor || "#0c6291"}22`, color: p.estadoColor || "#0c6291" }}>{p.estado}</span>
+                  {puedeGestionar && esListoParaEntregar(p.estado) && (
+                    linkWhatsappEntrega(p) ? (
+                      <a
+                        className="chip-wa-entrega"
+                        href={linkWhatsappEntrega(p)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Avisar al cliente por WhatsApp que su pedido esta listo"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Icon name="chat" size={13} /> Avisar
+                      </a>
+                    ) : (
+                      <span className="chip-wa-entrega chip-wa-entrega-inactivo" title="Este cliente no tiene telefono registrado">
+                        <Icon name="chat" size={13} /> Sin tel.
+                      </span>
+                    )
+                  )}
+                </td>
                 {esAdmin && (
                   <>
                     <td>{formatoUSD(p.totalVenta)}</td>
@@ -586,6 +655,8 @@ export default function Pedidos() {
               editable={puedeGestionar}
               onCambiarEstado={cambiarEstadoDesdeStepper}
             />
+
+            {puedeGestionar && esListoParaEntregar(detalle.estado) && <AvisoEntrega pedido={detalle} />}
 
             <div className="metric-strip" style={{ margin: "14px 0" }}>
               <div className="metric-box"><span>Estado</span><b>{detalle.estado}</b></div>

@@ -90,6 +90,12 @@ public class ClienteDemoInitializer implements CommandLineRunner {
         ejecutarSqlSeguro("INSERT INTO estados_pedido (nombre, orden, color) "
                 + "SELECT 'En revisión', 0, '#f5a524' FROM DUAL "
                 + "WHERE NOT EXISTS (SELECT 1 FROM estados_pedido WHERE nombre = 'En revisión')");
+        // "Por entregar": ultimo paso antes de "Entregado", cuando ya esta en el pais y listo
+        // para coordinar con el cliente si retira en sede o se le envia a domicilio.
+        ejecutarSqlSeguro("UPDATE estados_pedido SET orden = 8 WHERE nombre = 'Entregado'");
+        ejecutarSqlSeguro("INSERT INTO estados_pedido (nombre, orden, color) "
+                + "SELECT 'Por entregar', 7, '#0ea5e9' FROM DUAL "
+                + "WHERE NOT EXISTS (SELECT 1 FROM estados_pedido WHERE nombre = 'Por entregar')");
     }
 
     private void ejecutarSqlSeguro(String sql) {

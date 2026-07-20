@@ -12,6 +12,7 @@ public class PedidoResumenDTO {
     private String codigo;
     private Long clienteId;
     private String clienteNombre;
+    private String clienteTelefono;
     private String descripcion;
     private String direccionEntrega;
     private String tipoEnvio;

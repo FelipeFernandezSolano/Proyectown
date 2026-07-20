@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import Icon from "../components/Icon";
 import RutaViaje from "../components/RutaViaje";
+import ChatbotWidget from "../components/ChatbotWidget";
 import heroImg from "../assets/hero-importsmart.jpg";
 import slidePuerto from "../assets/slide-puerto-importsmart.jpg";
 import slideAereo from "../assets/slide-aereo-importsmart.jpg";
@@ -9,6 +10,8 @@ import slideCamion from "../assets/slide-camion-importsmart.jpg";
 import slideBodega from "../assets/slide-bodega-importsmart.jpg";
 import nosotrosImg from "../assets/slide-oficina-importsmart.jpg";
 import "./Inicio.css";
+
+const WHATSAPP = "50670103860";
 
 const slides = [
   { img: slidePuerto, etiqueta: "Carga marítima", titulo: "Del puerto de origen hasta tu bodega", texto: "Coordinamos consolidación, tránsito marítimo, aduana y entrega en una sola gestión." },
@@ -110,6 +113,7 @@ export default function Inicio() {
   }, []);
 
   const s = slides[slide];
+  const wa = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent("Hola ImportSmart, quiero cotizar una importación.")}`;
 
   return (
     <div className="is-landing">
@@ -254,10 +258,11 @@ export default function Inicio() {
       <section className="is-cta" id="contacto">
         <div className="is-cta-inner reveal">
           <h2>¿Listo para importar con claridad?</h2>
-          <p>Iniciá sesión para dar seguimiento a tus pedidos, o registrate para armar tu primera cotización.</p>
+          <p>Iniciá sesión para dar seguimiento a tus pedidos, registrate para armar tu primera cotización, o escribinos directo por WhatsApp si preferís hablar con un agente.</p>
           <div className="is-cta-actions">
             <Link className="is-btn is-btn-lg" to="/login">Iniciar sesión <Icon name="arrowRight" size={15} /></Link>
             <Link className="is-btn-ghost is-btn-lg is-ghost-light" to="/registro">Registrarme</Link>
+            <a className="is-btn-ghost is-btn-lg is-ghost-light" href={wa} target="_blank" rel="noopener noreferrer"><Icon name="quote" size={16} /> Escribir por WhatsApp</a>
           </div>
         </div>
       </section>
@@ -278,6 +283,7 @@ export default function Inicio() {
           </div>
           <div>
             <h5>Contacto</h5>
+            <a href={wa} target="_blank" rel="noopener noreferrer">WhatsApp</a>
             <a href="mailto:contacto@importsmart.com">contacto@importsmart.com</a>
             <span>San José, Costa Rica</span>
           </div>
@@ -286,6 +292,12 @@ export default function Inicio() {
           <span>&copy; {new Date().getFullYear()} ImportSmart. Proyecto académico - empresa ficticia.</span>
         </div>
       </footer>
+
+      <a className="is-wa" href={wa} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">
+        <svg viewBox="0 0 32 32" width="28" height="28" fill="#fff"><path d="M16 3C9 3 3.5 8.5 3.5 15.5c0 2.4.7 4.6 1.9 6.6L3 29l7.1-2.3c1.9 1 4 1.6 6.3 1.6 7 0 12.5-5.5 12.5-12.5S23 3 16 3zm0 22.7c-2 0-3.9-.5-5.5-1.5l-.4-.2-4.2 1.3 1.4-4.1-.3-.4c-1.1-1.7-1.7-3.6-1.7-5.7C5.6 9.7 10.3 5 16 5s10.4 4.7 10.4 10.5S21.7 25.7 16 25.7zm5.9-7.8c-.3-.2-1.9-.9-2.2-1-.3-.1-.5-.2-.7.2s-.8 1-1 1.2c-.2.2-.4.2-.7.1-.3-.2-1.4-.5-2.6-1.6-1-.9-1.6-1.9-1.8-2.3-.2-.3 0-.5.1-.7.1-.1.3-.4.5-.6.1-.2.2-.3.3-.5.1-.2 0-.4 0-.6-.1-.2-.7-1.7-1-2.3-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.2 1.2-1.2 2.8s1.2 3.3 1.4 3.5c.2.2 2.4 3.7 5.9 5.1.8.4 1.5.6 2 .7.8.3 1.6.2 2.2.1.7-.1 1.9-.8 2.2-1.5.3-.7.3-1.4.2-1.5-.1-.2-.3-.2-.6-.4z"/></svg>
+      </a>
+
+      <ChatbotWidget whatsappUrl={wa} />
     </div>
   );
 }

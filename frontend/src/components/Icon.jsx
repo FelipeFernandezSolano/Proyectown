@@ -23,6 +23,8 @@ const PATHS = {
   chart: "M4 20V4h2v14h14v2H4zm4-3V9h2v8H8zm4 0V5h2v12h-2zm4 0v-6h2v6h-2z",
   timeline: "M4 6a2 2 0 1 1 4 0 2 2 0 0 1-4 0zm0 6a2 2 0 1 1 4 0 2 2 0 0 1-4 0zm0 6a2 2 0 1 1 4 0 2 2 0 0 1-4 0zM10 5h10v2H10zm0 6h10v2H10zm0 6h10v2H10z",
   logout: "M16 13v-2H7V8l-5 4 5 4v-3zM20 3h-8v2h8v14h-8v2h8a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z",
+  chat: "M4 4h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H9l-5 4v-4H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm2.5 5v2h11V9zm0 4v2h7v-2z",
+  send: "M3 20 21 12 3 4v6l14 2-14 2z",
 };
 
 export default function Icon({ name, size = 16, style, className }) {

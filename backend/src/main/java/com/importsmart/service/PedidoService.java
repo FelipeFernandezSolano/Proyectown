@@ -269,6 +269,7 @@ public class PedidoService {
         if (p.getCliente() != null) {
             d.setClienteId(p.getCliente().getId());
             d.setClienteNombre(p.getCliente().getNombre());
+            d.setClienteTelefono(p.getCliente().getTelefono());
         }
         d.setDescripcion(p.getDescripcion());
         d.setDireccionEntrega(p.getDireccionEntrega());
@@ -300,6 +301,7 @@ public class PedidoService {
             d.setClienteId(p.getCliente().getId());
             d.setClienteNombre(p.getCliente().getNombre());
             d.setClienteContacto(p.getCliente().getContacto());
+            d.setClienteTelefono(p.getCliente().getTelefono());
         }
         d.setDescripcion(p.getDescripcion());
         d.setPais(p.getPais());

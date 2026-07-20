@@ -48,6 +48,11 @@ public class CalculoService {
         return v == null ? BigDecimal.ZERO : v;
     }
 
+    public BigDecimal getCostoKgReal() { return costoKgReal; }
+    public BigDecimal getCostoKgVolumetricoExcedente() { return costoKgVolumetricoExcedente; }
+    public BigDecimal getFactorVolumetricoAereo() { return factorVolumetricoAereo; }
+    public BigDecimal getFactorMaritimoUsdM3() { return factorMaritimoUsdM3; }
+
     /** Volumen en metros cubicos a partir de dimensiones en centimetros. */
     public BigDecimal volumenM3(BigDecimal largo, BigDecimal ancho, BigDecimal alto) {
         return nz(largo).multiply(nz(ancho)).multiply(nz(alto))

@@ -64,6 +64,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Publico
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/chatbot/**").permitAll()
 
                 // ---- Solo ADMINISTRADOR: informacion sensible y toda escritura ----
                 // Dashboard (utilidades, costos) y cotizaciones (contienen utilidad)
