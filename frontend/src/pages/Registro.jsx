@@ -1,15 +1,13 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../context/AuthContext";
 import { validarEmail, validarTelefono, validarPasswordSegura } from "../utils/validaciones";
+import GoogleButton from "../components/GoogleButton";
 import logo from "../assets/logo-importsmart.svg";
 import "./Login.css";
 
-const GOOGLE_HABILITADO = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
-
 export default function Registro() {
-  const { registrar, loginConGoogle } = useAuth();
+  const { registrar } = useAuth();
   const navigate = useNavigate();
 
   const [form, setForm] = useState({ nombre: "", email: "", telefono: "", password: "", confirmarPassword: "" });
@@ -54,19 +52,6 @@ export default function Registro() {
     }
   };
 
-  const onGoogleExito = async (credentialResponse) => {
-    setError("");
-    setCargando(true);
-    try {
-      const usuario = await loginConGoogle(credentialResponse.credential);
-      irAlPanel(usuario);
-    } catch (err) {
-      setError(err.response?.data?.mensaje || "No se pudo completar el registro con Google.");
-    } finally {
-      setCargando(false);
-    }
-  };
-
   return (
     <div className="login-fondo">
       <form className="login-card" onSubmit={onSubmit}>
@@ -102,20 +87,10 @@ export default function Registro() {
           {cargando ? "Creando cuenta..." : "Crear cuenta"}
         </button>
 
-        {GOOGLE_HABILITADO && (
-          <>
-            <div className="login-divisor"><span>o</span></div>
-            <div className="login-google">
-              <GoogleLogin
-                onSuccess={onGoogleExito}
-                onError={() => setError("No se pudo completar el registro con Google.")}
-                text="signup_with"
-                shape="pill"
-                width="100%"
-              />
-            </div>
-          </>
-        )}
+        <div className="login-divisor"><span>o</span></div>
+        <div className="login-google">
+          <GoogleButton texto="Registrarse con Google" />
+        </div>
 
         <p className="login-enlace">
           Ya tienes cuenta? <Link to="/login">Inicia sesion aqui</Link>

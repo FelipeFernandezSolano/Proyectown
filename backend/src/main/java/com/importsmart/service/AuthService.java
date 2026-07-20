@@ -16,6 +16,7 @@ import com.importsmart.repository.UsuarioRepository;
 import com.importsmart.security.JwtService;
 import com.importsmart.security.UserPrincipal;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,6 +24,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
@@ -40,6 +43,12 @@ public class AuthService {
 
     @Value("${app.google.client-id:}")
     private String googleClientId;
+
+    @Value("${app.google.client-secret:}")
+    private String googleClientSecret;
+
+    @Value("${app.google.redirect-uri:http://localhost:8080/api/auth/google/callback}")
+    private String googleRedirectUri;
 
     @Value("${app.frontend-url:http://localhost:5173}")
     private String frontendUrl;
@@ -124,6 +133,51 @@ public class AuthService {
         }
 
         return tokenPara(usuario);
+    }
+
+    /** Construye la URL del flujo de autorizacion de Google (redireccion completa del navegador). */
+    public String construirUrlAutorizacionGoogle() {
+        String scope = URLEncoder.encode("openid email profile", StandardCharsets.UTF_8);
+        return "https://accounts.google.com/o/oauth2/v2/auth"
+                + "?client_id=" + URLEncoder.encode(googleClientId, StandardCharsets.UTF_8)
+                + "&redirect_uri=" + URLEncoder.encode(googleRedirectUri, StandardCharsets.UTF_8)
+                + "&response_type=code"
+                + "&scope=" + scope
+                + "&access_type=online"
+                + "&prompt=select_account";
+    }
+
+    /**
+     * Canjea el "code" que Google envio al callback del backend por un id_token, y reutiliza
+     * la misma logica de verificacion/registro-automatico que el flujo de boton (loginConGoogle).
+     */
+    @Transactional
+    public LoginResponse loginConGoogleAuthorizationCode(String code) {
+        Map<String, Object> tokenResponse;
+        try {
+            String body = "client_id=" + URLEncoder.encode(googleClientId, StandardCharsets.UTF_8)
+                    + "&client_secret=" + URLEncoder.encode(googleClientSecret, StandardCharsets.UTF_8)
+                    + "&code=" + URLEncoder.encode(code, StandardCharsets.UTF_8)
+                    + "&redirect_uri=" + URLEncoder.encode(googleRedirectUri, StandardCharsets.UTF_8)
+                    + "&grant_type=authorization_code";
+            tokenResponse = restClient.post()
+                    .uri("https://oauth2.googleapis.com/token")
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .body(body)
+                    .retrieve()
+                    .body(Map.class);
+        } catch (Exception ex) {
+            throw new SolicitudInvalidaException("No se pudo canjear el codigo de autorizacion de Google");
+        }
+
+        String idToken = tokenResponse != null ? (String) tokenResponse.get("id_token") : null;
+        if (idToken == null || idToken.isBlank()) {
+            throw new SolicitudInvalidaException("Google no devolvio un token de identidad valido");
+        }
+
+        GoogleAuthRequest request = new GoogleAuthRequest();
+        request.setCredential(idToken);
+        return loginConGoogle(request);
     }
 
     @Transactional

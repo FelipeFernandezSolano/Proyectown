@@ -7,9 +7,6 @@ export const login = (email, password) =>
 export const registrar = (dto) =>
   client.post("/auth/register", dto).then((r) => r.data);
 
-export const loginConGoogle = (credential) =>
-  client.post("/auth/google", { credential }).then((r) => r.data);
-
 export const olvideContrasena = (email) =>
   client.post("/auth/forgot-password", { email }).then((r) => r.data);
 

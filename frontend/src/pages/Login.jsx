@@ -1,19 +1,20 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { GoogleLogin } from "@react-oauth/google";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Icon from "../components/Icon";
+import GoogleButton from "../components/GoogleButton";
 import logo from "../assets/logo-importsmart.svg";
 import "./Login.css";
 
-const GOOGLE_HABILITADO = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
-
 export default function Login() {
-  const { login, loginConGoogle } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(
+    searchParams.get("googleError") ? "No se pudo completar el inicio de sesion con Google. Intentalo de nuevo." : ""
+  );
   const [cargando, setCargando] = useState(false);
 
   const irAlPanel = (usuario) => navigate(usuario.rol === "ADMINISTRADOR" ? "/dashboard" : "/pedidos");
@@ -27,19 +28,6 @@ export default function Login() {
       irAlPanel(usuario);
     } catch (err) {
       setError(err.response?.data?.mensaje || "No se pudo iniciar sesion. Revisa tus datos.");
-    } finally {
-      setCargando(false);
-    }
-  };
-
-  const onGoogleExito = async (credentialResponse) => {
-    setError("");
-    setCargando(true);
-    try {
-      const usuario = await loginConGoogle(credentialResponse.credential);
-      irAlPanel(usuario);
-    } catch (err) {
-      setError(err.response?.data?.mensaje || "No se pudo iniciar sesion con Google.");
     } finally {
       setCargando(false);
     }
@@ -73,19 +61,10 @@ export default function Login() {
           {cargando ? "Ingresando..." : "Ingresar"}
         </button>
 
-        {GOOGLE_HABILITADO && (
-          <>
-            <div className="login-divisor"><span>o</span></div>
-            <div className="login-google">
-              <GoogleLogin
-                onSuccess={onGoogleExito}
-                onError={() => setError("No se pudo iniciar sesion con Google.")}
-                shape="pill"
-                width="100%"
-              />
-            </div>
-          </>
-        )}
+        <div className="login-divisor"><span>o</span></div>
+        <div className="login-google">
+          <GoogleButton texto="Iniciar sesion con Google" />
+        </div>
 
         <p className="login-enlace">
           No tienes cuenta? <Link to="/registro">Registrate aqui</Link>

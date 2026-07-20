@@ -7,6 +7,7 @@ import Login from "./pages/Login";
 import Registro from "./pages/Registro";
 import OlvideContrasena from "./pages/OlvideContrasena";
 import RestablecerContrasena from "./pages/RestablecerContrasena";
+import GoogleCallback from "./pages/GoogleCallback";
 
 const Inicio = lazy(() => import("./pages/Inicio"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -42,6 +43,7 @@ function RutasApp() {
     <Routes>
       <Route path="/" element={<Suspense fallback={<div className="contenido">Cargando...</div>}><Inicio /></Suspense>} />
       <Route path="/login" element={<Login />} />
+      <Route path="/login/google/callback" element={<GoogleCallback />} />
       <Route path="/registro" element={<Registro />} />
       <Route path="/olvide-contrasena" element={<OlvideContrasena />} />
       <Route path="/restablecer-contrasena" element={<RestablecerContrasena />} />

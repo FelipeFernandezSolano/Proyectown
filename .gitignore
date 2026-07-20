@@ -14,6 +14,7 @@ target/
 .env
 *.env
 application-local.properties
+client_secret_*.json
 
 # ---- Editores / SO ----
 .idea/
