@@ -8,6 +8,19 @@ DROP DATABASE IF EXISTS importsmart;
 CREATE DATABASE importsmart CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE importsmart;
 
+-- ---------------------------------------------------------------------------
+--  Usuario dedicado de la aplicacion (mismo en todas las maquinas: equipo y
+--  profesor). Asi NADIE tiene que editar application.properties: la app se
+--  conecta siempre con  importsmart / importsmart123 .
+--  Se crea al correr este script una vez con un usuario que pueda crear
+--  usuarios (por ejemplo root). No se vuelve a tocar despues.
+-- ---------------------------------------------------------------------------
+CREATE USER IF NOT EXISTS 'importsmart'@'localhost' IDENTIFIED BY 'importsmart123';
+CREATE USER IF NOT EXISTS 'importsmart'@'%' IDENTIFIED BY 'importsmart123';
+GRANT ALL PRIVILEGES ON importsmart.* TO 'importsmart'@'localhost';
+GRANT ALL PRIVILEGES ON importsmart.* TO 'importsmart'@'%';
+FLUSH PRIVILEGES;
+
 CREATE TABLE usuarios (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   nombre VARCHAR(100) NOT NULL,
