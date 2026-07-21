@@ -75,7 +75,8 @@ tipo de cambio (open.er-api.com), y opcionalmente Google OAuth y Google Gemini.
 | Java JDK | 17+ | `java -version` |
 | Apache Maven | 3.9+ (o el Maven integrado del IDE) | `mvn -version` |
 | Node.js | 18+ (incluye npm) | `node -v` |
-| MySQL | 8+ (o MariaDB 10.4+) corriendo en localhost:3306 | `mysql --version` |
+| MySQL Server | 8+ (o MariaDB 10.4+) corriendo en localhost:3306 | Abrir MySQL Workbench y conectar |
+| MySQL Workbench | Para crear la base de datos y correr el script (ver Paso 1) | Abrir el programa |
 
 No hace falta instalar nada más: no se usan Docker, Python, ni frameworks full-stack.
 Cualquier editor sirve para abrir el proyecto (Visual Studio Code, IntelliJ, Eclipse).
@@ -91,13 +92,17 @@ backend (`importsmart` / `importsmart123`, con permisos ya otorgados) y datos de
 ejemplo (empresas, productos, pedidos con su historial), para que el sistema no arranque
 vacío.
 
-```bash
-# Desde la carpeta del proyecto, con un usuario que pueda crear usuarios (ej. root):
-mysql -u root -p < database/importsmart_schema.sql
-```
+Ejecutalo desde MySQL Workbench (no hace falta usar la terminal):
 
-También podés abrir `database/importsmart_schema.sql` en MySQL Workbench y ejecutarlo con
-el botón del rayo (seleccioná todo el script antes de ejecutar).
+1. Abrí MySQL Workbench y conectate a tu servidor MySQL local con un usuario que pueda
+   crear usuarios (por ejemplo, root).
+2. Menú File > Open SQL Script... y seleccioná el archivo `database/importsmart_schema.sql`
+   del proyecto.
+3. Con el script abierto, seleccioná todo el contenido (Ctrl+A).
+4. Hacé clic en el ícono del rayo (Execute) en la barra de herramientas para correr todo
+   el script.
+5. Esperá a que el panel de abajo (Output) muestre que todas las instrucciones se
+   ejecutaron sin errores.
 
 Con esto no hace falta tocar ningún archivo de configuración: el backend ya viene
 preparado para conectarse con el usuario que el script acaba de crear.
