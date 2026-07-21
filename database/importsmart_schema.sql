@@ -8,27 +8,15 @@ DROP DATABASE IF EXISTS importsmart;
 CREATE DATABASE importsmart CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE importsmart;
 
--- ---------------------------------------------------------------------------
---  Usuario dedicado de la aplicacion (mismo en todas las maquinas: equipo y
---  profesor). Asi NADIE tiene que editar application.properties: la app se
---  conecta siempre con  importsmart / importsmart123 .
---  Se crea al correr este script una vez con un usuario que pueda crear
---  usuarios (por ejemplo root). No se vuelve a tocar despues.
--- ---------------------------------------------------------------------------
+-- Usuario dedicado de la aplicacion (mismo en todas las maquinas).
 CREATE USER IF NOT EXISTS 'importsmart'@'localhost' IDENTIFIED BY 'importsmart123';
-CREATE USER IF NOT EXISTS 'importsmart'@'%' IDENTIFIED BY 'importsmart123';
 GRANT ALL PRIVILEGES ON importsmart.* TO 'importsmart'@'localhost';
-GRANT ALL PRIVILEGES ON importsmart.* TO 'importsmart'@'%';
-FLUSH PRIVILEGES;
 
 CREATE TABLE usuarios (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   nombre VARCHAR(100) NOT NULL,
   email VARCHAR(150) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
-  telefono VARCHAR(30),
-  reset_token VARCHAR(100),
-  reset_token_expira DATETIME,
   rol VARCHAR(20) NOT NULL,
   activo TINYINT(1) NOT NULL DEFAULT 1,
   creado_en DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -157,11 +145,10 @@ INSERT INTO categorias (nombre) VALUES
 ('Deportes y fitness');
 
 INSERT INTO tarifas_envio (tipo, costo_por_kg_usd, dias_estimados, descripcion) VALUES
-('AEREO', 12.5, 22, 'Envio aereo: referencia operativa de 15 a 22 dias calendario.'),
-('MARITIMO', 3.2, 55, 'Envio maritimo consolidado: referencia operativa de 40 a 55 dias calendario.');
+('AEREO', 12.5, 6, 'Envio aereo express: mas rapido, ideal para carga liviana o urgente.'),
+('MARITIMO', 3.2, 35, 'Envio maritimo consolidado: mas economico, ideal para carga voluminosa.');
 
 INSERT INTO estados_pedido (nombre, orden, color) VALUES
-('En revisión', 0, '#f5a524'),
 ('Cotizado', 1, '#5b6b7a'),
 ('Aprobado', 2, '#0c6291'),
 ('Comprado', 3, '#14b8c4'),
