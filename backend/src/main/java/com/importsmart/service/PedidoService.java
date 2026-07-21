@@ -205,6 +205,10 @@ public class PedidoService {
         BigDecimal pesoVolTotal = BigDecimal.ZERO;
         BigDecimal facturableTotal = BigDecimal.ZERO;
         BigDecimal costoEnvio = BigDecimal.ZERO;
+        BigDecimal tarifaPorKg = p.getTipoEnvio() != null
+                ? tarifaRepository.findByTipo(p.getTipoEnvio().name())
+                        .map(TarifaEnvio::getCostoPorKgUsd).orElse(BigDecimal.ZERO)
+                : BigDecimal.ZERO;
         if (paquetesReq != null) {
             int n = 1;
             for (PaqueteDTO pk : paquetesReq) {
@@ -227,8 +231,7 @@ public class PedidoService {
                 pesoRealTotal = pesoRealTotal.add(real);
                 pesoVolTotal = pesoVolTotal.add(vol);
                 facturableTotal = facturableTotal.add(facturable);
-                costoEnvio = costoEnvio.add(calculo.costoEnvio(
-                        real, vol, p.getTipoEnvio(), pk.getLargoCm(), pk.getAnchoCm(), pk.getAltoCm()));
+                costoEnvio = costoEnvio.add(calculo.costoEnvio(facturable, tarifaPorKg));
                 n++;
             }
         }

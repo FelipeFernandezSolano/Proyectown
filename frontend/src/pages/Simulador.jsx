@@ -122,8 +122,8 @@ export default function Simulador() {
                   <div key={m.tipoEnvio} className={`panel-envio${esMejor ? " recomendado" : ""}`}>
                     <h4><Icon name={m.tipoEnvio === "MARITIMO" ? "ship" : "plane"} size={18} />{m.tipoEnvio}{esMejor && <span className="badge badge-verde">Recomendado</span>}</h4>
                     <div className="linea">
-                      <span>Formula</span>
-                      <b>{m.tipoEnvio === "MARITIMO" ? "m3 x $850" : "$20/kg real + $18/kg exced."}</b>
+                      <span>Tarifa</span>
+                      <b>${formatoNumero(m.costoPorKg)}/kg facturable</b>
                     </div>
                     <div className="linea"><span>Tiempo estimado</span><b>~{m.diasEstimados} dias</b></div>
                     <div className="linea"><span>Peso facturable</span><b>{formatoNumero(m.pesoFacturableTotal)} kg</b></div>

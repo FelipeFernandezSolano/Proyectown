@@ -75,7 +75,27 @@
   font-size: 13px;
   line-height: 1.45;
   max-width: 88%;
-  white-space: pre-wrap;
+}
+.cb-msg-user { white-space: pre-wrap; }
+
+.cb-msg-bot p {
+  margin: 0 0 6px;
+}
+.cb-msg-bot p:last-child {
+  margin-bottom: 0;
+}
+.cb-msg-bot ul {
+  margin: 0 0 6px;
+  padding-left: 18px;
+}
+.cb-msg-bot ul:last-child {
+  margin-bottom: 0;
+}
+.cb-msg-bot li {
+  margin-bottom: 3px;
+}
+.cb-msg-bot b {
+  color: #7ee0e8;
 }
 .cb-msg-bot {
   background: rgba(255, 255, 255, 0.08);

@@ -111,24 +111,26 @@ public class ChatbotService {
     private String construirContexto(String enlaceWhatsapp) {
         Integer diasAereo = null;
         Integer diasMaritimo = null;
+        java.math.BigDecimal tarifaAereoKg = null;
+        java.math.BigDecimal tarifaMaritimoKg = null;
         for (TarifaEnvio t : tarifaRepository.findAll()) {
-            if ("AEREO".equalsIgnoreCase(t.getTipo())) diasAereo = t.getDiasEstimados();
-            if ("MARITIMO".equalsIgnoreCase(t.getTipo())) diasMaritimo = t.getDiasEstimados();
+            if ("AEREO".equalsIgnoreCase(t.getTipo())) { diasAereo = t.getDiasEstimados(); tarifaAereoKg = t.getCostoPorKgUsd(); }
+            if ("MARITIMO".equalsIgnoreCase(t.getTipo())) { diasMaritimo = t.getDiasEstimados(); tarifaMaritimoKg = t.getCostoPorKgUsd(); }
         }
 
         String tarifas = """
-                - AEREO: se cobra el mayor entre el peso real y el peso volumetrico ("peso facturable").
-                  El peso real se cobra a $%s por kg. Si el peso volumetrico (largo x ancho x alto en cm,
-                  dividido entre 1,000,000, multiplicado por %s) supera al peso real, SOLO ese excedente
-                  se cobra aparte a $%s por kg. Tiempo estimado: ~%s dias.
-                - MARITIMO: se cobra por volumen, NO por kilogramo: $%s por metro cubico
-                  (largo x ancho x alto en cm, dividido entre 1,000,000). Tiempo estimado: ~%s dias.
-                (Estos son los factores configurados actualmente; el costo final de cada pedido depende
-                de las medidas y el peso real de sus paquetes, calculado automaticamente en la plataforma.)
+                Peso facturable = el mayor entre el peso real y el peso volumetrico (largo x ancho x alto
+                en cm, dividido entre %s). El costo de envio = peso facturable x tarifa por kg de la
+                modalidad elegida:
+                - AEREO: $%s por kg. Tiempo estimado: ~%s dias.
+                - MARITIMO: $%s por kg. Tiempo estimado: ~%s dias.
+                (Estas son las tarifas configuradas actualmente; el costo final de cada pedido depende de
+                las medidas y el peso real de sus paquetes, calculado automaticamente en la plataforma.)
                 """.formatted(
-                calculo.getCostoKgReal(), calculo.getFactorVolumetricoAereo(), calculo.getCostoKgVolumetricoExcedente(),
+                calculo.getDivisorVolumetrico(),
+                tarifaAereoKg != null ? tarifaAereoKg : "N/D",
                 diasAereo != null ? diasAereo : "15-22",
-                calculo.getFactorMaritimoUsdM3(),
+                tarifaMaritimoKg != null ? tarifaMaritimoKg : "N/D",
                 diasMaritimo != null ? diasMaritimo : "40-55"
         );
 
@@ -148,7 +150,7 @@ public class ChatbotService {
                    bodega, En transito, En aduana, Entregado.
                 5. El cliente sigue el estado de su pedido desde su cuenta.
 
-                Formula real de costo de envio (asi se calcula en la plataforma, no es un precio fijo por kg):
+                Formula real de costo de envio (asi se calcula en la plataforma):
                 %s
 
                 Sobre impuestos de aduana y otros cargos: se agregan como "gastos adicionales" dentro de la
@@ -165,9 +167,10 @@ public class ChatbotService {
                 Reglas MUY IMPORTANTES que debes seguir siempre:
                 - NUNCA inventes datos de pedidos, precios finales, clientes o utilidades especificas. No
                   tenes acceso a esa informacion y no debes fingir que la tenes.
-                - NUNCA resumas el envio maritimo como "tanto por kg": el maritimo se cobra por volumen
-                  (metro cubico), no por peso. Si no tenes las medidas del paquete, no des un precio final:
-                  explica la formula y ofrece que el equipo lo calcule con las medidas exactas.
+                - Tanto aereo como maritimo se cobran igual: peso facturable x tarifa por kg de esa
+                  modalidad (la unica diferencia es el valor de la tarifa y el tiempo estimado). Si no
+                  tenes las medidas del paquete, no des un precio final: explica la formula y ofrece que
+                  el equipo lo calcule con las medidas exactas.
                 - NUNCA escribas placeholders como "[sitio web]", "[enlace]" o URLs inventadas. El usuario
                   ya esta en la pagina de ImportSmart: referite a "esta plataforma", "el boton de arriba" o
                   "tu cuenta", sin inventar direcciones web.
@@ -180,7 +183,14 @@ public class ChatbotService {
                   por WhatsApp como alternativa.
                 - Si no podes resolver la duda con la informacion de arriba, o el usuario pide hablar con
                   una persona, invitalo a escribir por WhatsApp aqui: %s
-                - Respondé siempre en español, de forma breve, clara y amable (maximo 4-5 lineas).
+                - Respondé siempre en español, de forma breve, amable y visual (esto es un chat, no un
+                  documento): maximo 2-3 oraciones cortas por respuesta.
+                - Usa 1 o 2 emojis relevantes por respuesta para que se sienta amigable (✈️ aereo, 🚢
+                  maritimo, 📦 pedido, ✅ confirmacion, 💬 whatsapp), sin exagerar.
+                - Si tenes que comparar 2 o 3 opciones (ej. aereo vs maritimo, o pasos de un proceso), usa
+                  una lista con lineas que empiecen con "- " en vez de un parrafo corrido; usa **negrita**
+                  solo para la palabra clave de cada punto. Evita parrafos largos siempre que se pueda
+                  resumir en una lista corta.
                 - No hables de temas que no sean sobre ImportSmart, importaciones, cotizaciones o el uso de
                   la plataforma.
                 """.formatted(tarifas, enlaceWhatsapp);

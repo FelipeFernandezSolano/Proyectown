@@ -4,9 +4,51 @@ import Icon from "./Icon";
 import "./ChatbotWidget.css";
 
 const SALUDO =
-  "Hola! Soy el asistente de ImportSmart. Puedo ayudarte con dudas generales sobre " +
-  "cómo cotizar, el proceso de importación o las tarifas de envío. Si preferís hablar " +
-  "con una persona, abajo tenés el acceso directo a WhatsApp.";
+  "¡Hola! 👋 Soy el asistente de ImportSmart.\n" +
+  "Te ayudo con dudas sobre cómo cotizar, el proceso de importación o las tarifas de envío ✈️🚢.\n" +
+  "¿En qué te ayudo hoy?";
+
+function escapeHtml(s) {
+  return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function aplicarNegritas(linea) {
+  return linea.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+}
+
+/** Convierte el markdown simple (negritas, listas) del bot en HTML seguro: todo se escapa
+ * primero y solo se insertan las etiquetas que este componente controla. */
+function formatearMensaje(texto) {
+  const lineas = String(texto || "").split("\n");
+  const bloques = [];
+  let listaActual = [];
+
+  const cerrarLista = () => {
+    if (listaActual.length) {
+      bloques.push("<ul>" + listaActual.map((li) => `<li>${li}</li>`).join("") + "</ul>");
+      listaActual = [];
+    }
+  };
+
+  for (const lineaCruda of lineas) {
+    const linea = lineaCruda.trim();
+    if (!linea) {
+      cerrarLista();
+      continue;
+    }
+    const esBullet = /^[-*•]\s+/.test(linea);
+    const sinMarcador = esBullet ? linea.replace(/^[-*•]\s+/, "") : linea;
+    const contenido = aplicarNegritas(escapeHtml(sinMarcador));
+    if (esBullet) {
+      listaActual.push(contenido);
+    } else {
+      cerrarLista();
+      bloques.push(`<p>${contenido}</p>`);
+    }
+  }
+  cerrarLista();
+  return bloques.join("");
+}
 
 export default function ChatbotWidget({ whatsappUrl }) {
   const [abierto, setAbierto] = useState(false);
@@ -54,9 +96,15 @@ export default function ChatbotWidget({ whatsappUrl }) {
           </div>
           <div className="cb-mensajes">
             {mensajes.map((m, i) => (
-              <div key={i} className={"cb-msg " + (m.rol === "user" ? "cb-msg-user" : "cb-msg-bot")}>
-                {m.texto}
-              </div>
+              m.rol === "user" ? (
+                <div key={i} className="cb-msg cb-msg-user">{m.texto}</div>
+              ) : (
+                <div
+                  key={i}
+                  className="cb-msg cb-msg-bot"
+                  dangerouslySetInnerHTML={{ __html: formatearMensaje(m.texto) }}
+                />
+              )
             ))}
             {enviando && <div className="cb-msg cb-msg-bot cb-typing">Escribiendo…</div>}
             <div ref={finRef} />

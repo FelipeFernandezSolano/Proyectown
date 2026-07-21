@@ -30,6 +30,11 @@ public class SimulacionService {
         BigDecimal totalVenta = nz(req.getTotalVenta());
         BigDecimal gastos = nz(req.getGastosAdicionales());
 
+        TarifaEnvio aereo = tarifa(TipoEnvio.AEREO);
+        TarifaEnvio maritimo = tarifa(TipoEnvio.MARITIMO);
+        BigDecimal tarifaAereoKg = aereo != null ? nz(aereo.getCostoPorKgUsd()) : BigDecimal.ZERO;
+        BigDecimal tarifaMaritimoKg = maritimo != null ? nz(maritimo.getCostoPorKgUsd()) : BigDecimal.ZERO;
+
         // ---- Pesos por paquete ----
         BigDecimal realTotal = BigDecimal.ZERO;
         BigDecimal volTotal = BigDecimal.ZERO;
@@ -45,19 +50,15 @@ public class SimulacionService {
                 realTotal = realTotal.add(real);
                 volTotal = volTotal.add(vol);
                 facturableSeparado = facturableSeparado.add(facturable);
-                costoAereoSeparado = costoAereoSeparado.add(calculo.costoEnvio(real, vol));
-                costoMaritimoSeparado = costoMaritimoSeparado.add(calculo.costoEnvioMaritimo(
-                        pk.getLargoCm(), pk.getAnchoCm(), pk.getAltoCm()));
+                costoAereoSeparado = costoAereoSeparado.add(calculo.costoEnvio(facturable, tarifaAereoKg));
+                costoMaritimoSeparado = costoMaritimoSeparado.add(calculo.costoEnvio(facturable, tarifaMaritimoKg));
                 cantidad++;
             }
         }
         // Consolidado: los volumenes se suman, el peso facturable es el mayor entre real y volumetrico total.
         BigDecimal facturableConsolidado = calculo.pesoFacturable(realTotal, volTotal);
-        BigDecimal costoAereoConsolidado = calculo.costoEnvio(realTotal, volTotal);
-        BigDecimal costoMaritimoConsolidado = costoMaritimoSeparado;
-
-        TarifaEnvio aereo = tarifa(TipoEnvio.AEREO);
-        TarifaEnvio maritimo = tarifa(TipoEnvio.MARITIMO);
+        BigDecimal costoAereoConsolidado = calculo.costoEnvio(facturableConsolidado, tarifaAereoKg);
+        BigDecimal costoMaritimoConsolidado = calculo.costoEnvio(facturableConsolidado, tarifaMaritimoKg);
 
         // ---- RF-11: comparacion de modalidad (usando el empaque actual = separado) ----
         res.getComparacionModalidad().add(calcularModalidad(aereo, realTotal, volTotal, facturableSeparado, costoAereoSeparado, subtotal, totalVenta, gastos));

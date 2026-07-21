@@ -2,27 +2,20 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   buscarClientes, getProductosActivos, crearPedido, actualizarPedido, getPedido,
-  crearCliente, crearProducto, getCategorias,
+  crearCliente, crearProducto, getCategorias, getTarifas,
 } from "../api/endpoints";
 import { formatoUSD, formatoNumero, RENTABILIDAD } from "../utils/format";
 import Icon from "../components/Icon";
 import AutocompleteInput from "../components/AutocompleteInput";
 import { useAuth } from "../context/AuthContext";
 
+const DIVISOR_VOLUMETRICO = 5000;
 const pesoVol = (l, a, h) => {
-  const v = ((Number(l) * Number(a) * Number(h)) / 1000000) * 168;
+  const v = (Number(l) * Number(a) * Number(h)) / DIVISOR_VOLUMETRICO;
   return isFinite(v) ? v : 0;
 };
-const COSTO_KG_REAL = 20;
-const COSTO_KG_VOL_EXCEDENTE = 18;
-const volumenM3 = (l, a, h) => {
-  const v = (Number(l) * Number(a) * Number(h)) / 1000000;
-  return isFinite(v) ? v : 0;
-};
-const costoEnvioPeso = (real, vol, tipoEnvio, pk) => {
-  if (tipoEnvio === "MARITIMO") return volumenM3(pk.largoCm, pk.anchoCm, pk.altoCm) * 850;
-  return (real * COSTO_KG_REAL) + (Math.max(vol - real, 0) * COSTO_KG_VOL_EXCEDENTE);
-};
+// Costo de envio = peso facturable (mayor entre real y volumetrico) x tarifa por kg de la modalidad.
+const costoEnvioPeso = (facturable, tarifaPorKg) => facturable * (Number(tarifaPorKg) || 0);
 const clasificar = (m) => (m >= 25 ? "RENTABLE" : m >= 12 ? "POCO_RENTABLE" : "NO_RENTABLE");
 
 export default function NuevoPedido() {
@@ -69,11 +62,13 @@ export default function NuevoPedido() {
   });
   const [items, setItems] = useState([]);
   const [paquetes, setPaquetes] = useState([{ descripcion: "Caja 1", largoCm: 0, anchoCm: 0, altoCm: 0, pesoRealKg: 0 }]);
+  const [tarifas, setTarifas] = useState([]);
 
   useEffect(() => {
     if (!esCliente) buscarClientes("").then(setClientes).catch(() => {});
     getProductosActivos().then(setProductos).catch(() => {});
     getCategorias().then(setCategorias).catch(() => {});
+    getTarifas().then(setTarifas).catch(() => {});
   }, [esCliente]);
 
   useEffect(() => {
@@ -112,6 +107,8 @@ export default function NuevoPedido() {
   const debeRegistrarCliente = clienteTexto.trim() && !clienteExacto && !form.clienteId;
 
   const totales = useMemo(() => {
+    const tarifa = tarifas.find((t) => t.tipo === form.tipoEnvio);
+    const tarifaPorKg = tarifa?.costoPorKgUsd || 0;
     let subtotal = 0, totalVenta = 0, real = 0, vol = 0, facturable = 0, costoEnvio = 0;
     items.forEach((it) => {
       const p = productos.find((x) => x.id === Number(it.productoId));
@@ -127,13 +124,13 @@ export default function NuevoPedido() {
       real += r;
       vol += v;
       facturable += f;
-      costoEnvio += costoEnvioPeso(r, v, form.tipoEnvio, pk);
+      costoEnvio += costoEnvioPeso(f, tarifaPorKg);
     });
     const gastos = Number(form.gastosAdicionales) || 0;
     const utilidad = totalVenta - subtotal - costoEnvio - gastos;
     const margen = totalVenta > 0 ? (utilidad / totalVenta) * 100 : 0;
     return { subtotal, totalVenta, real, vol, facturable, costoEnvio, utilidad, margen, rentabilidad: clasificar(margen) };
-  }, [items, paquetes, productos, form.gastosAdicionales, form.tipoEnvio]);
+  }, [items, paquetes, productos, form.gastosAdicionales, form.tipoEnvio, tarifas]);
 
   const addItem = () => setItems([...items, { productoId: "", productoTexto: "", cantidad: 1, costoUnitario: null, precioVenta: null }]);
   const setItem = (i, campo, val) => {
@@ -517,8 +514,10 @@ export default function NuevoPedido() {
             )}
             {!esCliente && (
               <p className="texto-tenue nota-tarifa">
-                Aéreo: peso volumétrico = m3 x 168; kg real a $20 y excedente volumétrico a $18.
-                Marítimo: m3 x $850.
+                Peso volumétrico = (largo x ancho x alto en cm) / 5000. Costo de envío = peso
+                facturable (el mayor entre real y volumétrico) x tarifa por kg de la modalidad
+                ({tarifas.find((t) => t.tipo === "AEREO")?.costoPorKgUsd ?? "-"} USD/kg aéreo,{" "}
+                {tarifas.find((t) => t.tipo === "MARITIMO")?.costoPorKgUsd ?? "-"} USD/kg marítimo).
               </p>
             )}
           </div>
